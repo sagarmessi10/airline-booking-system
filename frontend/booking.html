@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroNepal | Confirm Booking</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path
+          d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z" />
+      </svg>
+      AeroNepal
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="history.html">Booking History</a></li>
+      <li><a href="support.html">Support</a></li>
+      <li id="auth-nav" style="margin-left: 1rem; display: flex; align-items: center; gap: 0.75rem;"></li>
+    </ul>
+  </nav>
+
+  <!-- Centered Booking Form -->
+  <div class="booking-container">
+    <div class="booking-card">
+      <h1>Payment Details</h1>
+      <p style="text-align: center; color: var(--text-light); margin-bottom: 2rem;">Secure checkout to confirm your
+        flight.</p>
+
+      <div id="booking-msg"
+        style="text-align:center; margin-bottom:1rem; color:var(--primary); display:none; padding:0.5rem; border-radius:4px; background:rgba(229,46,45,0.1);">
+      </div>
+
+      <div class="booking-form">
+        <div class="input-group">
+          <label for="user">Booked As</label>
+          <input type="text" id="user" class="input-control" placeholder="Loading user..." readonly
+            style="background-color:#f3f4f6; cursor:not-allowed; opacity:0.8;">
+        </div>
+
+        <div class="input-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="input-control" placeholder="+977-9800000000">
+        </div>
+
+        <div class="input-group">
+          <label for="age">Age</label>
+          <input type="number" id="age" class="input-control" placeholder="25" min="1">
+        </div>
+
+        <div class="input-group">
+          <label for="cardname">Card Holder Name</label>
+          <input type="text" id="cardname" class="input-control" placeholder="John Doe">
+        </div>
+
+        <div class="input-group">
+          <label for="cardnumber">Card Number</label>
+          <input type="text" id="cardnumber" class="input-control" placeholder="0000 0000 0000 0000" maxlength="19">
+        </div>
+
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="expiry">Expiry Date</label>
+            <input type="text" id="expiry" class="input-control" placeholder="MM/YY" maxlength="5">
+          </div>
+          <div class="input-group">
+            <label for="cvv">CVV</label>
+            <input type="password" id="cvv" class="input-control" placeholder="•••" maxlength="4">
+          </div>
+        </div>
+
+        <button onclick="bookFlight()" id="confirmBtn" class="btn btn-success booking-btn">
+          Confirm Booking <span class="spinner" id="spinner"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 AeroNepal Airlines Simulator. All Rights Reserved.</p>
+  </footer>
+
+  <script>
+    const API = 'http://localhost:5000';
+
+    function getToken() { return localStorage.getItem('aeronepal_token'); }
+    function getUser() {
+      try { return JSON.parse(localStorage.getItem('aeronepal_user')); } catch { return null; }
+    }
+    function logout() {
+      localStorage.removeItem('aeronepal_token');
+      localStorage.removeItem('aeronepal_user');
+      window.location.href = 'index.html';
+    }
+
+    window.onload = () => {
+      const token = getToken();
+      const user = getUser();
+
+      // Redirect to login if not authenticated
+      if (!token || !user) {
+        window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+        return;
+      }
+
+      // Populate nav
+      const nav = document.getElementById('auth-nav');
+      nav.innerHTML = `
+        <span style="font-size:0.9rem; color:var(--text-light);">Hi, <strong style="color:var(--text-dark);">${user.name}</strong></span>
+        <button onclick="logout()" class="btn btn-primary" style="padding:0.5rem 1rem; font-size:0.85rem;">Logout</button>
+      `;
+
+      // Pre-fill user email
+      document.getElementById('user').value = user.email;
+
+      // Format card number with spaces
+      document.getElementById('cardnumber').addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g, '').substring(0, 16);
+        e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
+      });
+
+      // Format expiry with slash
+      document.getElementById('expiry').addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (v.length >= 3) v = v.substring(0, 2) + '/' + v.substring(2);
+        e.target.value = v;
+      });
+    };
+
+    async function bookFlight() {
+      const btn = document.getElementById('confirmBtn');
+      const spinner = document.getElementById('spinner');
+      const msgBox = document.getElementById('booking-msg');
+
+      const params = new URLSearchParams(window.location.search);
+      let flight_id = params.get('flight') || localStorage.getItem('selected_flight_id');
+      if (flight_id === 'undefined' || flight_id === 'null') flight_id = null;
+
+      const phone = document.getElementById('phone').value.trim();
+      const age = document.getElementById('age').value.trim();
+      const card_holder = document.getElementById('cardname').value.trim();
+      const card_number = document.getElementById('cardnumber').value.trim();
+      const expiry = document.getElementById('expiry').value.trim();
+      const cvv = document.getElementById('cvv').value.trim();
+
+      if (!flight_id) {
+        msgBox.textContent = `No flight selected (Search: ${window.location.search || 'None'}). Please select a flight from the Home page first.`;
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      if (!phone || !age || !card_holder || !card_number || !expiry || !cvv) {
+        msgBox.textContent = 'Please fill in all payment details.';
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      const nameRegex = /^[a-zA-Z\s]+$/;
+      if (!nameRegex.test(card_holder)) {
+        msgBox.textContent = 'Card holder name must contain only letters and spaces.';
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      const cardDigits = card_number.replace(/\s/g, '');
+      if (cardDigits.length !== 16 || !/^\d+$/.test(cardDigits)) {
+        msgBox.textContent = 'Card number must be exactly 16 digits.';
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+      if (!expiryRegex.test(expiry)) {
+        msgBox.textContent = 'Expiry date must be in MM/YY format with a valid month.';
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      const [month, year] = expiry.split('/');
+      const now = new Date();
+      const currentYear = parseInt(now.getFullYear().toString().slice(-2), 10);
+      const currentMonth = now.getMonth() + 1;
+
+      if (parseInt(year, 10) < currentYear || (parseInt(year, 10) === currentYear && parseInt(month, 10) < currentMonth)) {
+        msgBox.textContent = 'Expiry date cannot be in the past.';
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      const cvvRegex = /^\d{3,4}$/;
+      if (!cvvRegex.test(cvv)) {
+        msgBox.textContent = 'CVV must be 3 or 4 digits.';
+        msgBox.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      spinner.style.display = 'inline-block';
+      msgBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API}/book`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+          },
+          body: JSON.stringify({ flight_id, card_number, card_holder, expiry })
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Booking failed.');
+        }
+
+        // Success
+        spinner.style.display = 'none';
+        btn.innerHTML = 'Booking Confirmed! ✓';
+        btn.style.backgroundColor = '#10B981';
+
+        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+
+      } catch (e) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        spinner.style.display = 'none';
+        msgBox.textContent = e.message || 'Failed to connect to the booking server. Please try again.';
+        msgBox.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+
+</html>

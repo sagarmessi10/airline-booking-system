@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroNepal | Premium Booking</title>
+  <meta name="description" content="Book domestic flights across Nepal at the best prices with AeroNepal.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
+      AeroNepal
+    </a>
+    <ul class="nav-links">
+      <li><a href="#">Home</a></li>
+      <li><a href="history.html">Booking History</a></li>
+      <li><a href="support.html">Support</a></li>
+      <li id="auth-nav" style="margin-left: 1rem; display: flex; align-items: center; gap: 0.75rem;"></li>
+    </ul>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Discover Your Next Journey</h1>
+      <p>Experience the most premium and comfortable flights across the beautiful Himalayas.</p>
+    </div>
+  </header>
+
+  <!-- Search Widget -->
+  <div class="search-widget">
+    <div class="search-widgets-tabs">
+      <div class="search-tab">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+        Flights
+      </div>
+
+      <!-- Trip Type Toggle -->
+      <div class="trip-toggle" id="trip-toggle">
+        <div class="trip-toggle-slider" id="trip-slider"></div>
+        <button class="trip-toggle-btn active" id="btn-oneway" onclick="setTripType('oneway')">One Way</button>
+        <button class="trip-toggle-btn" id="btn-roundtrip" onclick="setTripType('roundtrip')">Round Trip</button>
+      </div>
+    </div>
+
+    <style>
+      .trip-toggle {
+        position: relative;
+        display: flex;
+        background: var(--background);
+        border-radius: 8px;
+        padding: 3px;
+        margin-left: auto;
+        border: 1px solid var(--border);
+        overflow: hidden;
+      }
+      .trip-toggle-slider {
+        position: absolute;
+        top: 3px; left: 3px;
+        width: calc(50% - 3px);
+        height: calc(100% - 6px);
+        background: var(--primary);
+        border-radius: 6px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(229,46,45,0.25);
+        z-index: 1;
+      }
+      .trip-toggle-slider.right {
+        transform: translateX(100%);
+      }
+      .trip-toggle-btn {
+        position: relative;
+        z-index: 2;
+        padding: 0.45rem 1.1rem;
+        background: none;
+        border: none;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-light);
+        cursor: pointer;
+        transition: color 0.25s;
+        white-space: nowrap;
+      }
+      .trip-toggle-btn.active {
+        color: #fff;
+      }
+
+      .search-form-extended {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .search-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+        margin-top: 1rem;
+      }
+
+      .return-group {
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-width 0.35s ease, opacity 0.3s ease, padding 0.3s ease;
+        padding: 0;
+      }
+      .return-group.visible {
+        max-width: 300px;
+        opacity: 1;
+        padding: 0;
+      }
+
+      .flight-badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border-radius: 100px;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+      }
+      .badge-oneway {
+        background: rgba(107,114,128,0.1);
+        color: #6B7280;
+      }
+      .badge-round {
+        background: rgba(229,46,45,0.1);
+        color: var(--primary);
+      }
+
+      @media (max-width: 768px) {
+        .search-form-extended { grid-template-columns: 1fr; }
+        .search-row-2 { grid-template-columns: 1fr; }
+        .trip-toggle { margin-left: 0; margin-top: 0.75rem; }
+        .search-widgets-tabs { flex-wrap: wrap; }
+        .return-group.visible { max-width: 100%; }
+      }
+    </style>
+
+    <div class="search-form-extended">
+      <div class="input-group">
+        <label for="source">From</label>
+        <input type="text" id="source" class="input-control" placeholder="City or Airport (e.g. Kathmandu)">
+      </div>
+      <div class="input-group">
+        <label for="destination">To</label>
+        <input type="text" id="destination" class="input-control" placeholder="City or Airport (e.g. Pokhara)">
+      </div>
+    </div>
+    <div class="search-row-2">
+      <div class="input-group">
+        <label for="depart-date">Departure Date</label>
+        <input type="date" id="depart-date" class="input-control">
+      </div>
+      <div class="input-group return-group" id="return-group">
+        <label for="return-date">Return Date</label>
+        <input type="date" id="return-date" class="input-control">
+      </div>
+      <button onclick="searchFlights()" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem; white-space: nowrap;">Search Flights</button>
+    </div>
+  </div>
+
+  <!-- Flight Results Section -->
+  <div class="container">
+    <h2 class="section-title">Available Flights</h2>
+    <div id="flights">
+      <p style="text-align: center; color: var(--text-light);">Enter your details and search to find available flights.</p>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 AeroNepal Airlines Simulator. All Rights Reserved.</p>
+  </footer>
+
+  <script>
+    const API = 'http://localhost:5000';
+    let tripType = 'oneway';
+
+    // ── Auth helpers ──────────────────────────────────────────────────────────
+    function getToken() { return localStorage.getItem('aeronepal_token'); }
+    function getUser()  {
+      try { return JSON.parse(localStorage.getItem('aeronepal_user')); } catch { return null; }
+    }
+    function logout() {
+      localStorage.removeItem('aeronepal_token');
+      localStorage.removeItem('aeronepal_user');
+      window.location.reload();
+    }
+
+    // ── Render nav auth section ───────────────────────────────────────────────
+    function renderAuth() {
+      const nav = document.getElementById('auth-nav');
+      const user = getUser();
+      if (user) {
+        const adminLink = user.role === 'admin'
+          ? `<a href="admin.html" style="font-size:0.85rem;font-weight:600;color:var(--primary);text-decoration:none;">Admin Panel</a>`
+          : '';
+        nav.innerHTML = `
+          ${adminLink}
+          <span style="font-size:0.9rem; color: var(--text-light);">Hi, <strong style="color:var(--text-dark);">${user.name}</strong></span>
+          <button onclick="logout()" class="btn btn-primary" style="padding:0.5rem 1rem; font-size:0.85rem;">Logout</button>
+        `;
+      } else {
+        nav.innerHTML = `
+          <a href="login.html" class="btn btn-primary" style="padding:0.5rem 1.25rem; font-size:0.9rem;">Login / Register</a>
+        `;
+      }
+    }
+
+    // ── Trip type toggle ──────────────────────────────────────────────────────
+    function setTripType(type) {
+      tripType = type;
+      const slider = document.getElementById('trip-slider');
+      const btnOne = document.getElementById('btn-oneway');
+      const btnRound = document.getElementById('btn-roundtrip');
+      const retGroup = document.getElementById('return-group');
+
+      if (type === 'roundtrip') {
+        slider.classList.add('right');
+        btnOne.classList.remove('active');
+        btnRound.classList.add('active');
+        retGroup.classList.add('visible');
+      } else {
+        slider.classList.remove('right');
+        btnOne.classList.add('active');
+        btnRound.classList.remove('active');
+        retGroup.classList.remove('visible');
+      }
+    }
+
+    // Set min date to today
+    function initDates() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('depart-date').setAttribute('min', today);
+      document.getElementById('return-date').setAttribute('min', today);
+      document.getElementById('depart-date').addEventListener('change', (e) => {
+        document.getElementById('return-date').setAttribute('min', e.target.value);
+      });
+    }
+
+    // ── Search flights ────────────────────────────────────────────────────────
+    window.onload = () => {
+      renderAuth();
+      initDates();
+      searchFlights(true);
+    };
+
+    async function searchFlights(isInitial = false) {
+      const flightsContainer = document.getElementById('flights');
+      if (!isInitial) {
+        flightsContainer.innerHTML = '<p style="text-align:center;color:var(--text-light);">Searching best flights...</p>';
+      }
+
+      try {
+        const res = await fetch(`${API}/flights`);
+        const data = await res.json();
+
+        const sourceQuery = document.getElementById('source').value.toLowerCase().trim();
+        const destQuery   = document.getElementById('destination').value.toLowerCase().trim();
+
+        // Linear Search Algorithm: sequentially check each flight in the array
+        function linearSearchFlights(flights, sQuery, dQuery) {
+          if (!sQuery && !dQuery) return flights;
+          
+          let results = [];
+          for (let i = 0; i < flights.length; i++) {
+            const flight = flights[i];
+            const matchSource = flight.source.toLowerCase().includes(sQuery);
+            const matchDest = flight.destination.toLowerCase().includes(dQuery);
+            
+            if (sQuery && dQuery && matchSource && matchDest) {
+              results.push(flight);
+            } else if (sQuery && !dQuery && matchSource) {
+              results.push(flight);
+            } else if (!sQuery && dQuery && matchDest) {
+              results.push(flight);
+            }
+          }
+          return results;
+        }
+
+        const filtered = linearSearchFlights(data, sourceQuery, destQuery);
+
+        if (filtered.length === 0) {
+          flightsContainer.innerHTML = '<p style="text-align:center;color:var(--text-light);">No flights found for this route. Try another search.</p>';
+          return;
+        }
+
+        const isRound = tripType === 'roundtrip';
+        const badgeHtml = isRound
+          ? '<span class="flight-badge badge-round">Round Trip</span>'
+          : '<span class="flight-badge badge-oneway">One Way</span>';
+
+        flightsContainer.innerHTML = filtered.map(f => {
+          const displayPrice = isRound ? (f.price * 2) : f.price;
+          return `
+          <div class="flight-card">
+            <div class="flight-info">
+              <div class="flight-airline">
+                ${f.flight_name}
+                <span>Direct Flight ${badgeHtml}</span>
+              </div>
+              <div class="flight-route">
+                <div class="route-point">
+                  <span class="route-city">${f.source}</span>
+                  <span class="route-time">${f.departure_time || '08:00 AM'}</span>
+                </div>
+                <div class="route-divider">
+                  <span style="font-size:0.8rem;">${f.duration || '1h 15m'}</span>
+                  <div class="route-line"></div>
+                </div>
+                <div class="route-point">
+                  <span class="route-city">${f.destination}</span>
+                  <span class="route-time">Arrival</span>
+                </div>
+              </div>
+            </div>
+            <div class="flight-action">
+              <div class="flight-price">NPR ${displayPrice}${isRound ? '<small style="font-size:0.7rem;color:var(--text-light);display:block;">for 2 flights</small>' : ''}</div>
+              <button onclick="book(${f.id})" class="btn btn-primary">Book Now</button>
+            </div>
+          </div>
+        `}).join('');
+
+      } catch (err) {
+        flightsContainer.innerHTML = '<p style="text-align:center;color:var(--primary);">Failed to load flights. Make sure the backend server is running.</p>';
+      }
+    }
+
+    function book(id) {
+      const departDate = document.getElementById('depart-date').value;
+      const returnDate = document.getElementById('return-date').value;
+      
+      // Store in localStorage so the flight ID is never lost
+      localStorage.setItem('selected_flight_id', id);
+      localStorage.setItem('selected_trip_type', tripType);
+      
+      let url = `booking.html?flight=${id}&trip=${tripType}`;
+      if (departDate) url += `&depart=${departDate}`;
+      if (tripType === 'roundtrip' && returnDate) url += `&return=${returnDate}`;
+
+      if (getToken()) {
+        window.location.href = url;
+      } else {
+        window.location.href = 'login.html?redirect=' + encodeURIComponent(url);
+      }
+    }
+  </script>
+</body>
+</html>

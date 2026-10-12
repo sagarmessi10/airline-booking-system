@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroNepal | Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #E52E2D;
+      --primary-hover: #CC2222;
+      --bg: #f4f5f7;
+      --sidebar-bg: #111118;
+      --sidebar-text: #a1a1b5;
+      --sidebar-active: #fff;
+      --card-bg: #fff;
+      --text-dark: #1F2937;
+      --text-light: #6B7280;
+      --border: #E5E7EB;
+      --success: #059669;
+      --success-bg: rgba(5,150,105,0.08);
+      --danger: #dc2626;
+      --danger-bg: rgba(220,38,38,0.08);
+      --info: #2563eb;
+      --info-bg: rgba(37,99,235,0.08);
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text-dark);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 250px;
+      background: var(--sidebar-bg);
+      padding: 2rem 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0 1.5rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--primary);
+      text-decoration: none;
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--sidebar-text);
+      padding: 0 1.5rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.6;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .sidebar-nav a:hover {
+      color: var(--sidebar-active);
+      background: rgba(255,255,255,0.05);
+    }
+    .sidebar-nav a.active {
+      color: var(--sidebar-active);
+      background: rgba(229,46,45,0.1);
+      border-left-color: var(--primary);
+    }
+
+    .sidebar-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .sidebar-footer a {
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.15s;
+    }
+    .sidebar-footer a:hover { color: var(--primary); }
+
+    /* ── Main Content ── */
+    .main {
+      flex: 1;
+      margin-left: 250px;
+      padding: 2rem 2.5rem;
+      min-height: 100vh;
+    }
+
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .main-header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+    .header-user strong { color: var(--text-dark); }
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    /* ── Stat Cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .stat-card .stat-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .stat-card .stat-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .stat-card .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 0.25rem;
+    }
+
+    /* ── Panel (sections) ── */
+    .panel {
+      display: none;
+    }
+    .panel.active { display: block; }
+
+    /* ── Table ── */
+    .table-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      padding: 0.85rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-light);
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.85rem 1.5rem;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-admin { background: var(--danger-bg); color: var(--danger); }
+    .badge-user { background: var(--info-bg); color: var(--info); }
+    .badge-confirmed { background: var(--success-bg); color: var(--success); }
+
+    /* ── Action Buttons ── */
+    .btn-sm {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success-bg); color: var(--success); }
+    .btn-success:hover { background: var(--success); color: #fff; }
+    .btn-info { background: var(--info-bg); color: var(--info); }
+    .btn-info:hover { background: var(--info); color: #fff; }
+    .btn-primary-sm { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(229,46,45,0.2); }
+    .btn-primary-sm:hover { background: var(--primary-hover); }
+
+    /* ── Add Flight Form ── */
+    .add-flight-form {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    .add-flight-form.visible { display: block; }
+    .add-flight-form h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .form-grid-full {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 0.5rem;
+    }
+
+    .admin-input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .admin-input:focus { border-color: var(--primary); }
+    .admin-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-light);
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .empty-msg {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-light);
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--text-dark);
+      color: #fff;
+      padding: 0.85rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+    .toast.visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; padding: 1rem 0; }
+      .sidebar-brand span, .sidebar-label, .sidebar-nav a span, .sidebar-footer span { display: none; }
+      .sidebar-brand { padding: 0; justify-content: center; }
+      .sidebar-nav a { justify-content: center; padding: 0.75rem; }
+      .sidebar-footer a { justify-content: center; }
+      .main { margin-left: 60px; padding: 1.5rem; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      table { font-size: 0.82rem; }
+      th, td { padding: 0.6rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
+      <span>AeroNepal</span>
+    </a>
+    <div class="sidebar-label">Admin Panel</div>
+
+    <ul class="sidebar-nav">
+      <li><a href="#" class="active" onclick="switchPanel('overview', this)" id="nav-overview">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
+        <span>Overview</span>
+      </a></li>
+      <li><a href="#" onclick="switchPanel('flights', this)" id="nav-flights">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
+        <span>Flights</span>
+      </a></li>
+      <li><a href="#" onclick="switchPanel('bookings', this)" id="nav-bookings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+        <span>Bookings</span>
+      </a></li>
+      <li><a href="#" onclick="switchPanel('users', this)" id="nav-users">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        <span>Users</span>
+      </a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <a href="index.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        <span>Back to Site</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-header">
+      <h1 id="page-title">Dashboard Overview</h1>
+      <div class="header-user">
+        <span>Welcome, <strong id="admin-name">Admin</strong></span>
+        <div class="avatar" id="admin-avatar">A</div>
+      </div>
+    </div>
+
+    <!-- ═══════ OVERVIEW PANEL ═══════ -->
+    <div class="panel active" id="panel-overview">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--info-bg);color:var(--info);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          </div>
+          <div class="stat-value" id="stat-users">–</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(229,46,45,0.08);color:var(--primary);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
+          </div>
+          <div class="stat-value" id="stat-flights">–</div>
+          <div class="stat-label">Total Flights</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--success-bg);color:var(--success);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+          </div>
+          <div class="stat-value" id="stat-bookings">–</div>
+          <div class="stat-label">Total Bookings</div>
+        </div>
+      </div>
+
+      <!-- Recent Bookings Preview -->
+      <div class="table-card">
+        <div class="table-header">
+          <h2>Recent Bookings</h2>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Passenger</th><th>Flight</th><th>Route</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="recent-bookings-body">
+            <tr><td colspan="6" class="empty-msg">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════ FLIGHTS PANEL ═══════ -->
+    <div class="panel" id="panel-flights">
+      <div class="add-flight-form" id="add-flight-form">
+        <h3 id="flight-form-title">Add New Flight</h3>
+        <input type="hidden" id="edit-flight-id">
+        <div class="form-grid">
+          <div><label class="admin-label">Flight Name</label><input type="text" id="af-name" class="admin-input" placeholder="e.g. Buddha Air 201"></div>
+          <div><label class="admin-label">Source</label><input type="text" id="af-source" class="admin-input" placeholder="e.g. Kathmandu"></div>
+          <div><label class="admin-label">Destination</label><input type="text" id="af-dest" class="admin-input" placeholder="e.g. Pokhara"></div>
+          <div><label class="admin-label">Departure Time</label><input type="text" id="af-time" class="admin-input" placeholder="e.g. 08:00 AM"></div>
+          <div><label class="admin-label">Duration</label><input type="text" id="af-duration" class="admin-input" placeholder="e.g. 1h 15m"></div>
+          <div><label class="admin-label">Price (NPR)</label><input type="number" id="af-price" class="admin-input" placeholder="e.g. 5500"></div>
+          <div class="form-grid-full">
+            <button class="btn-sm" style="background:var(--bg);border:1px solid var(--border);" onclick="cancelFlightForm()">Cancel</button>
+            <button class="btn-sm btn-primary-sm" onclick="submitFlight();" id="flight-submit-btn">Add Flight</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h2>All Flights</h2>
+          <button class="btn-sm btn-primary-sm" onclick="showAddFlight()">+ Add Flight</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Flight</th><th>From</th><th>To</th><th>Time</th><th>Duration</th><th>Price</th><th>Actions</th></tr></thead>
+          <tbody id="flights-body">
+            <tr><td colspan="7" class="empty-msg">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════ BOOKINGS PANEL ═══════ -->
+    <div class="panel" id="panel-bookings">
+      <div class="table-card">
+        <div class="table-header">
+          <h2>All Bookings</h2>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>User</th><th>Email</th><th>Flight</th><th>Route</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="bookings-body">
+            <tr><td colspan="7" class="empty-msg">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════ USERS PANEL ═══════ -->
+    <div class="panel" id="panel-users">
+      <div class="table-card">
+        <div class="table-header">
+          <h2>All Users</h2>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+          <tbody id="users-body">
+            <tr><td colspan="5" class="empty-msg">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = 'http://localhost:5000';
+
+    function getToken() { return localStorage.getItem('aeronepal_token'); }
+    function getUser()  {
+      try { return JSON.parse(localStorage.getItem('aeronepal_user')); } catch { return null; }
+    }
+
+    function authHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      };
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 2500);
+    }
+
+    // ── Gate: must be admin ──
+    window.onload = () => {
+      const user = getUser();
+      if (!user || user.role !== 'admin') {
+        alert('Access denied. Admin privileges required.');
+        window.location.href = 'index.html';
+        return;
+      }
+      document.getElementById('admin-name').textContent = user.name;
+      document.getElementById('admin-avatar').textContent = user.name.charAt(0).toUpperCase();
+
+      loadStats();
+      loadRecentBookings();
+    };
+
+    // ── Panel Switching ──
+    const titles = { overview: 'Dashboard Overview', flights: 'Flight Management', bookings: 'All Bookings', users: 'User Management' };
+
+    function switchPanel(name, el) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`panel-${name}`).classList.add('active');
+      document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+      if (el) el.classList.add('active');
+      document.getElementById('page-title').textContent = titles[name] || 'Dashboard';
+
+      if (name === 'flights') loadFlights();
+      if (name === 'bookings') loadAllBookings();
+      if (name === 'users') loadUsers();
+      if (name === 'overview') { loadStats(); loadRecentBookings(); }
+    }
+
+    // ── Stats ──
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API}/admin/stats`, { headers: authHeaders() });
+        const d = await res.json();
+        document.getElementById('stat-users').textContent = d.totalUsers || 0;
+        document.getElementById('stat-flights').textContent = d.totalFlights || 0;
+        document.getElementById('stat-bookings').textContent = d.totalBookings || 0;
+      } catch { }
+    }
+
+    // ── Recent Bookings (overview) ──
+    async function loadRecentBookings() {
+      try {
+        const res = await fetch(`${API}/admin/bookings`, { headers: authHeaders() });
+        const data = await res.json();
+        const body = document.getElementById('recent-bookings-body');
+        if (!data.length) { body.innerHTML = '<tr><td colspan="6" class="empty-msg">No bookings yet.</td></tr>'; return; }
+        body.innerHTML = data.slice(0, 5).map(b => `
+          <tr>
+            <td>#${b.booking_id}</td>
+            <td>${b.user_name}</td>
+            <td>${b.flight_name}</td>
+            <td>${b.source} → ${b.destination}</td>
+            <td>NPR ${b.price}</td>
+            <td><span class="badge badge-confirmed">Confirmed</span></td>
+          </tr>
+        `).join('');
+      } catch { }
+    }
+
+    // ── Flights ──
+    async function loadFlights() {
+      try {
+        const res = await fetch(`${API}/flights`);
+        const data = await res.json();
+        const body = document.getElementById('flights-body');
+        if (!data.length) { body.innerHTML = '<tr><td colspan="7" class="empty-msg">No flights.</td></tr>'; return; }
+        body.innerHTML = data.map(f => `
+          <tr>
+            <td>${f.id}</td>
+            <td style="font-weight:600;">${f.flight_name}</td>
+            <td>${f.source}</td>
+            <td>${f.destination}</td>
+            <td>${f.departure_time || '–'}</td>
+            <td>${f.duration || '1h 15m'}</td>
+            <td style="font-weight:600;">NPR ${f.price}</td>
+            <td>
+              <button class="btn-sm btn-info" onclick="editFlight(${f.id},'${esc(f.flight_name)}','${esc(f.source)}','${esc(f.destination)}','${esc(f.departure_time||'')}','${esc(f.duration||'')}',${f.price})">Edit</button>
+              <button class="btn-sm btn-danger" onclick="deleteFlight(${f.id})">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch { }
+    }
+
+    function esc(s) { return (s||'').replace(/'/g, "\\'"); }
+
+    // Add / Edit flight form
+    let editingFlightId = null;
+
+    function showAddFlight() {
+      editingFlightId = null;
+      document.getElementById('flight-form-title').textContent = 'Add New Flight';
+      document.getElementById('flight-submit-btn').textContent = 'Add Flight';
+      ['af-name','af-source','af-dest','af-time','af-duration','af-price'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('add-flight-form').classList.add('visible');
+    }
+
+    function editFlight(id, name, src, dest, time, duration, price) {
+      editingFlightId = id;
+      document.getElementById('flight-form-title').textContent = 'Edit Flight #' + id;
+      document.getElementById('flight-submit-btn').textContent = 'Save Changes';
+      document.getElementById('af-name').value = name;
+      document.getElementById('af-source').value = src;
+      document.getElementById('af-dest').value = dest;
+      document.getElementById('af-time').value = time;
+      document.getElementById('af-duration').value = duration;
+      document.getElementById('af-price').value = price;
+      document.getElementById('add-flight-form').classList.add('visible');
+    }
+
+    function cancelFlightForm() {
+      document.getElementById('add-flight-form').classList.remove('visible');
+      editingFlightId = null;
+    }
+
+    async function submitFlight() {
+      const flight_name = document.getElementById('af-name').value.trim();
+      const source = document.getElementById('af-source').value.trim();
+      const destination = document.getElementById('af-dest').value.trim();
+      const departure_time = document.getElementById('af-time').value.trim();
+      const duration = document.getElementById('af-duration').value.trim();
+      const price = document.getElementById('af-price').value.trim();
+
+      if (!flight_name || !source || !destination || !price) {
+        showToast('Please fill in all required fields.');
+        return;
+      }
+
+      if (isNaN(price) || Number(price) <= 0) {
+        showToast('Price must be a valid positive number.');
+        return;
+      }
+
+      try {
+        if (editingFlightId) {
+          await fetch(`${API}/admin/flights/${editingFlightId}`, {
+            method: 'PUT', headers: authHeaders(),
+            body: JSON.stringify({ flight_name, source, destination, departure_time, duration: duration || '1h 15m', price })
+          });
+          showToast('Flight updated successfully!');
+        } else {
+          await fetch(`${API}/add-flight`, {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ flight_name, source, destination, departure_time, duration: duration || '1h 15m', price })
+          });
+          showToast('Flight added successfully!');
+        }
+        cancelFlightForm();
+        loadFlights();
+        loadStats();
+      } catch { showToast('Failed to save flight.'); }
+    }
+
+    async function deleteFlight(id) {
+      if (!confirm('Are you sure you want to delete this flight?')) return;
+      try {
+        await fetch(`${API}/admin/flights/${id}`, { method: 'DELETE', headers: authHeaders() });
+        showToast('Flight deleted.');
+        loadFlights();
+        loadStats();
+      } catch { showToast('Failed to delete flight.'); }
+    }
+
+    // ── All Bookings ──
+    async function loadAllBookings() {
+      try {
+        const res = await fetch(`${API}/admin/bookings`, { headers: authHeaders() });
+        const data = await res.json();
+        const body = document.getElementById('bookings-body');
+        if (!data.length) { body.innerHTML = '<tr><td colspan="7" class="empty-msg">No bookings.</td></tr>'; return; }
+        body.innerHTML = data.map(b => `
+          <tr>
+            <td>#${b.booking_id}</td>
+            <td>${b.user_name}</td>
+            <td>${b.user_email}</td>
+            <td>${b.flight_name}</td>
+            <td>${b.source} → ${b.destination}</td>
+            <td style="font-weight:600;">NPR ${b.price}</td>
+            <td><span class="badge badge-confirmed">Confirmed</span></td>
+          </tr>
+        `).join('');
+      } catch { }
+    }
+
+    // ── Users ──
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API}/admin/users`, { headers: authHeaders() });
+        const data = await res.json();
+        const body = document.getElementById('users-body');
+        if (!data.length) { body.innerHTML = '<tr><td colspan="5" class="empty-msg">No users.</td></tr>'; return; }
+        body.innerHTML = data.map(u => `
+          <tr>
+            <td>${u.id}</td>
+            <td style="font-weight:500;">${u.name}</td>
+            <td>${u.email}</td>
+            <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
+            <td>
+              ${u.role === 'user'
+                ? `<button class="btn-sm btn-success" onclick="changeRole(${u.id},'admin')">Make Admin</button>`
+                : `<button class="btn-sm btn-info" onclick="changeRole(${u.id},'user')">Make User</button>`
+              }
+            </td>
+          </tr>
+        `).join('');
+      } catch { }
+    }
+
+    async function changeRole(id, role) {
+      if (!confirm(`Change this user's role to "${role}"?`)) return;
+      try {
+        await fetch(`${API}/admin/users/${id}/role`, {
+          method: 'PUT', headers: authHeaders(),
+          body: JSON.stringify({ role })
+        });
+        showToast(`Role updated to ${role}.`);
+        loadUsers();
+        loadStats();
+      } catch { showToast('Failed to update role.'); }
+    }
+  </script>
+</body>
+</html>

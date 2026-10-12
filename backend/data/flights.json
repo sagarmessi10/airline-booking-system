@@ -1,0 +1,8 @@
+[
+  { "flight_name": "AeroNepal AN101", "source": "Kathmandu", "destination": "Pokhara",    "departure_time": "07:30 AM", "price": 6500,  "duration": "25m" },
+  { "flight_name": "AeroNepal AN102", "source": "Pokhara",   "destination": "Kathmandu",  "departure_time": "09:15 AM", "price": 6500,  "duration": "25m" },
+  { "flight_name": "AeroNepal AN201", "source": "Kathmandu", "destination": "Biratnagar", "departure_time": "08:00 AM", "price": 8900,  "duration": "50m" },
+  { "flight_name": "AeroNepal AN301", "source": "Kathmandu", "destination": "Bhairahawa", "departure_time": "10:45 AM", "price": 7800,  "duration": "40m" },
+  { "flight_name": "AeroNepal AN401", "source": "Kathmandu", "destination": "Lukla",      "departure_time": "06:30 AM", "price": 12500, "duration": "35m" },
+  { "flight_name": "AeroNepal AN501", "source": "Kathmandu", "destination": "Nepalgunj",  "departure_time": "01:20 PM", "price": 9800,  "duration": "55m" }
+]

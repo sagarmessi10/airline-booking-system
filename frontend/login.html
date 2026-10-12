@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroNepal | Login & Register</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #E52E2D;
+      --primary-hover: #CC2222;
+      --primary-glow: rgba(229, 46, 45, 0.25);
+      --bg-dark: #0f0f13;
+      --bg-card: #1a1a24;
+      --bg-input: #12121a;
+      --border: rgba(255,255,255,0.08);
+      --border-focus: rgba(229,46,45,0.5);
+      --text: #f1f1f5;
+      --text-muted: #8b8b9e;
+      --success: #10b981;
+      --error-bg: rgba(229,46,45,0.12);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    /* ── Left Panel ── */
+    .left-panel {
+      flex: 1;
+      background: linear-gradient(135deg, #1a0505 0%, #2d0808 40%, #0f0f13 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 4rem 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(229,46,45,0.15) 0%, transparent 70%);
+      top: -100px; left: -100px;
+      pointer-events: none;
+    }
+
+    .left-panel::after {
+      content: '✈';
+      position: absolute;
+      font-size: 20rem;
+      opacity: 0.04;
+      bottom: -3rem;
+      right: -3rem;
+      line-height: 1;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--primary);
+      text-decoration: none;
+      margin-bottom: 4rem;
+    }
+
+    .hero-text h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-text h1 span { color: var(--primary); }
+
+    .hero-text p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-width: 380px;
+    }
+
+    .features {
+      margin-top: 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .feature-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+    }
+
+    /* ── Right Panel ── */
+    .right-panel {
+      width: 480px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem 3.5rem;
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 2.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    /* ── Form Heading ── */
+    .form-heading {
+      margin-bottom: 2rem;
+    }
+
+    .form-heading h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .form-heading p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* ── Input Groups ── */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap svg {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 2.75rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-input::placeholder { color: var(--text-muted); }
+
+    .form-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(229,46,45,0.1);
+    }
+
+    /* ── Toggle Password ── */
+    .toggle-pw {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── Alert ── */
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      display: none;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .alert.error {
+      background: var(--error-bg);
+      border: 1px solid rgba(229,46,45,0.3);
+      color: #f87171;
+    }
+    .alert.success {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: #34d399;
+    }
+    .alert.visible { display: block; }
+
+    /* ── Submit Button ── */
+    .submit-btn {
+      width: 100%;
+      padding: 0.9rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .submit-btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 6px 20px var(--primary-glow); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Spinner ── */
+    .btn-spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Divider ── */
+    .divider {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 38%;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    .switch-txt {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .switch-txt button {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Panels ── */
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .left-panel { display: none; }
+      body { justify-content: center; background: var(--bg-card); }
+      .right-panel { width: 100%; max-width: 480px; border: none; min-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left decorative panel -->
+  <div class="left-panel">
+    <a href="index.html" class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
+      AeroNepal
+    </a>
+    <div class="hero-text">
+      <h1>Your journey<br>starts <span>here.</span></h1>
+      <p>Book flights across Nepal with ease. Explore Himalayan destinations at the best prices.</p>
+    </div>
+    <div class="features">
+      <div class="feature-item"><div class="feature-dot"></div>Secure booking with instant confirmation</div>
+      <div class="feature-item"><div class="feature-dot"></div>Best fares across Nepal's top routes</div>
+      <div class="feature-item"><div class="feature-dot"></div>24/7 customer support</div>
+    </div>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="right-panel">
+
+    <!-- Tab switcher -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-login" onclick="showTab('login')">Sign In</button>
+      <button class="tab-btn" id="tab-register" onclick="showTab('register')">Create Account</button>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert" id="alert-box"></div>
+
+    <!-- ── LOGIN FORM ── -->
+    <div class="form-panel active" id="panel-login">
+      <div class="form-heading">
+        <h2>Welcome back</h2>
+        <p>Sign in to your AeroNepal account</p>
+      </div>
+
+      <div class="form-group">
+        <label for="login-email">Email Address</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <input type="email" id="login-email" class="form-input" placeholder="you@example.com" autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="login-password" class="form-input" placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="toggle-pw" onclick="togglePw('login-password', this)" title="Show/hide password">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="login-btn" onclick="doLogin()">
+        <span id="login-btn-text">Sign In</span>
+        <div class="btn-spinner" id="login-spinner"></div>
+      </button>
+
+      <div class="switch-txt" style="margin-top:1.5rem;">
+        Don't have an account? <button onclick="showTab('register')">Create one</button>
+      </div>
+    </div>
+
+    <!-- ── REGISTER FORM ── -->
+    <div class="form-panel" id="panel-register">
+      <div class="form-heading">
+        <h2>Create account</h2>
+        <p>Join AeroNepal and start exploring</p>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-name">Full Name</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          <input type="text" id="reg-name" class="form-input" placeholder="Sagar Mishra" autocomplete="name">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-email">Email Address</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <input type="email" id="reg-email" class="form-input" placeholder="you@example.com" autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-password">Password</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="reg-password" class="form-input" placeholder="Min. 6 characters" autocomplete="new-password">
+          <button type="button" class="toggle-pw" onclick="togglePw('reg-password', this)" title="Show/hide password">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-confirm">Confirm Password</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <input type="password" id="reg-confirm" class="form-input" placeholder="Re-enter password" autocomplete="new-password">
+        </div>
+      </div>
+
+      <button class="submit-btn" id="reg-btn" onclick="doRegister()">
+        <span id="reg-btn-text">Create Account</span>
+        <div class="btn-spinner" id="reg-spinner"></div>
+      </button>
+
+      <div class="switch-txt" style="margin-top:1.5rem;">
+        Already have an account? <button onclick="showTab('login')">Sign in</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = 'http://localhost:5000';
+
+    // If already logged in, go home
+    if (localStorage.getItem('aeronepal_token')) {
+      window.location.href = 'index.html';
+    }
+
+    function showTab(tab) {
+      document.getElementById('panel-login').classList.toggle('active', tab === 'login');
+      document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+      hideAlert();
+    }
+
+    function showAlert(msg, type = 'error') {
+      const box = document.getElementById('alert-box');
+      box.textContent = msg;
+      box.className = `alert ${type} visible`;
+    }
+
+    function hideAlert() {
+      document.getElementById('alert-box').className = 'alert';
+    }
+
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      btn.innerHTML = isText
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+    }
+
+    function setLoading(btnId, spinnerId, textId, text, loading) {
+      const btn = document.getElementById(btnId);
+      const spinner = document.getElementById(spinnerId);
+      const label = document.getElementById(textId);
+      btn.disabled = loading;
+      spinner.style.display = loading ? 'block' : 'none';
+      label.textContent = loading ? 'Please wait...' : text;
+    }
+
+    async function doLogin() {
+      hideAlert();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!email || !password) return showAlert('Please enter your email and password.');
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) return showAlert('Please enter a valid email address.');
+
+      setLoading('login-btn', 'login-spinner', 'login-btn-text', 'Sign In', true);
+
+      try {
+        const res = await fetch(`${API}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setLoading('login-btn', 'login-spinner', 'login-btn-text', 'Sign In', false);
+          return showAlert(data.message || 'Login failed.');
+        }
+
+        localStorage.setItem('aeronepal_token', data.token);
+        localStorage.setItem('aeronepal_user', JSON.stringify(data.user));
+        showAlert('Login successful! Redirecting...', 'success');
+
+        setTimeout(() => {
+          const redirect = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
+          window.location.href = redirect;
+        }, 800);
+
+      } catch (e) {
+        setLoading('login-btn', 'login-spinner', 'login-btn-text', 'Sign In', false);
+        showAlert('Cannot connect to server. Make sure the backend is running.');
+      }
+    }
+
+    async function doRegister() {
+      hideAlert();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirm = document.getElementById('reg-confirm').value;
+
+      if (!name || !email || !password || !confirm) return showAlert('Please fill in all fields.');
+      
+      const nameRegex = /^[a-zA-Z\s]+$/;
+      if (!nameRegex.test(name)) return showAlert('Name must contain only letters and spaces.');
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) return showAlert('Please enter a valid email address.');
+      
+      if (password.length < 6) return showAlert('Password must be at least 6 characters.');
+      if (password !== confirm) return showAlert('Passwords do not match.');
+
+      setLoading('reg-btn', 'reg-spinner', 'reg-btn-text', 'Create Account', true);
+
+      try {
+        const res = await fetch(`${API}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setLoading('reg-btn', 'reg-spinner', 'reg-btn-text', 'Create Account', false);
+          return showAlert(data.message || 'Registration failed.');
+        }
+
+        localStorage.setItem('aeronepal_token', data.token);
+        localStorage.setItem('aeronepal_user', JSON.stringify(data.user));
+        showAlert('Account created! Redirecting...', 'success');
+
+        setTimeout(() => { window.location.href = 'index.html'; }, 800);
+
+      } catch (e) {
+        setLoading('reg-btn', 'reg-spinner', 'reg-btn-text', 'Create Account', false);
+        showAlert('Cannot connect to server. Make sure the backend is running.');
+      }
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const isLogin = document.getElementById('panel-login').classList.contains('active');
+      if (isLogin) doLogin(); else doRegister();
+    });
+  </script>
+</body>
+</html>

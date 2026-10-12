@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Backend",
+            "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+            "cwd": "${workspaceFolder}\\backend",
+            "program": "${workspaceFolder}\\backend\\server.js",
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "AeroNepal server running on (https?://\\S+)",
+                "uriFormat": "http://localhost:5000"
+            },
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        }
+    ]
+}

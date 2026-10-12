@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroNepal | Booking History</title>
+  <meta name="description" content="View your past flight bookings with AeroNepal.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .history-header {
+      text-align: center;
+      padding: 3rem 1rem 1rem;
+    }
+    .history-header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .history-header p {
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+
+    .history-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.5rem 5% 3rem;
+    }
+
+    .booking-entry {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .booking-entry:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .entry-left {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      flex: 1;
+    }
+
+    .entry-flight-name {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1.05rem;
+      min-width: 120px;
+    }
+    .entry-flight-name small {
+      display: block;
+      font-weight: 400;
+      color: var(--text-light);
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+    }
+
+    .entry-route {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .entry-city {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .entry-arrow {
+      color: var(--text-light);
+      font-size: 1.2rem;
+    }
+
+    .entry-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .entry-price {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      margin-bottom: 0.2rem;
+    }
+    .entry-date {
+      font-size: 0.82rem;
+      color: var(--text-light);
+    }
+
+    .badge-confirmed {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      margin-top: 0.35rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--text-light);
+    }
+    .empty-state svg {
+      margin-bottom: 1rem;
+      opacity: 0.4;
+    }
+    .empty-state h3 {
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+    }
+    .empty-state a {
+      display: inline-block;
+      margin-top: 1.5rem;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-light);
+    }
+
+    @media (max-width: 768px) {
+      .booking-entry {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      .entry-left {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .entry-right {
+        text-align: left;
+        width: 100%;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
+      AeroNepal
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="history.html" style="color: var(--primary);">Booking History</a></li>
+      <li><a href="support.html">Support</a></li>
+      <li id="auth-nav" style="margin-left: 1rem; display: flex; align-items: center; gap: 0.75rem;"></li>
+    </ul>
+  </nav>
+
+  <div class="history-header">
+    <h1>Your Booking History</h1>
+    <p>All your past and upcoming flight reservations</p>
+  </div>
+
+  <div class="history-container">
+    <div id="bookings-list">
+      <div class="loading-state">Loading your bookings...</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 AeroNepal Airlines Simulator. All Rights Reserved.</p>
+  </footer>
+
+  <script>
+    const API = 'http://localhost:5000';
+
+    function getToken() { return localStorage.getItem('aeronepal_token'); }
+    function getUser()  {
+      try { return JSON.parse(localStorage.getItem('aeronepal_user')); } catch { return null; }
+    }
+    function logout() {
+      localStorage.removeItem('aeronepal_token');
+      localStorage.removeItem('aeronepal_user');
+      window.location.href = 'index.html';
+    }
+
+    window.onload = async () => {
+      const token = getToken();
+      const user  = getUser();
+
+      if (!token || !user) {
+        window.location.href = 'login.html?redirect=history.html';
+        return;
+      }
+
+      // Render nav
+      const nav = document.getElementById('auth-nav');
+      nav.innerHTML = `
+        <span style="font-size:0.9rem; color:var(--text-light);">Hi, <strong style="color:var(--text-dark);">${user.name}</strong></span>
+        <button onclick="logout()" class="btn btn-primary" style="padding:0.5rem 1rem; font-size:0.85rem;">Logout</button>
+      `;
+
+      // Fetch bookings
+      const container = document.getElementById('bookings-list');
+      try {
+        const res = await fetch(`${API}/my-bookings`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('aeronepal_token');
+          localStorage.removeItem('aeronepal_user');
+          window.location.href = 'login.html?redirect=history.html';
+          return;
+        }
+
+        const bookings = await res.json();
+
+        if (!bookings.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <h3>No bookings yet</h3>
+              <p>You haven't booked any flights. Start exploring!</p>
+              <a href="index.html" class="btn btn-primary">Browse Flights</a>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = bookings.map(b => {
+          const date = b.created_at
+            ? new Date(b.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            : '—';
+          return `
+            <div class="booking-entry">
+              <div class="entry-left">
+                <div class="entry-flight-name">
+                  ${b.flight_name}
+                  <small>${b.departure_time || 'Scheduled'}</small>
+                </div>
+                <div class="entry-route">
+                  <span class="entry-city">${b.source}</span>
+                  <span class="entry-arrow">→</span>
+                  <span class="entry-city">${b.destination}</span>
+                </div>
+              </div>
+              <div class="entry-right">
+                <div>
+                  <div class="entry-price">NPR ${b.price}</div>
+                  <div class="entry-date">Booked: ${date}</div>
+                  <span class="badge-confirmed">✓ Confirmed</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (e) {
+        container.innerHTML = '<p style="text-align:center;color:var(--primary);padding:3rem;">Failed to load bookings. Make sure the backend is running.</p>';
+      }
+    };
+  </script>
+</body>
+</html>
