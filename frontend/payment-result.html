@@ -37,6 +37,10 @@
       document.getElementById('result-message').textContent = message;
     }
 
+    function formatAirport(city, code) {
+      return city && code ? `${city} (${code})` : city || code || '—';
+    }
+
     function addAction(label, href, className) {
       const link = document.createElement('a');
       link.className = className || 'btn btn-primary';
@@ -58,16 +62,22 @@
         });
         const booking = await response.json();
         if (!response.ok) throw new Error(booking.message || 'Unable to retrieve booking.');
+        if (booking.flight_id && booking.passenger_count &&
+            ((booking.payment_status === 'PAID' && booking.booking_status === 'CONFIRMED') || booking.payment_status === 'FAILED')) {
+          sessionStorage.removeItem(`aeronepal_checkout_idempotency_${booking.flight_id}_${booking.passenger_count}`);
+        }
 
         if (booking.payment_status === 'PAID' && booking.booking_status === 'CONFIRMED') {
-          setMessage('✓', 'Payment verified — booking confirmed', 'eSewa and AeroNepal have verified your test payment.');
+          setMessage('✓', 'Payment verified — demo reservation confirmed', 'eSewa and AeroNepal have verified your UAT payment. This is not an airline-issued ticket or live booking.');
           const details = document.getElementById('result-details');
           details.hidden = false;
           [
             ['Booking reference', booking.booking_reference],
             ['Payment reference', booking.provider_reference || 'Recorded by eSewa'],
-            ['Flight', `${booking.flight_name}: ${booking.source} to ${booking.destination}`],
-            ['Passenger', booking.passenger_name],
+            ['Flight', `${booking.flight_name}: ${formatAirport(booking.source_name, booking.source)} to ${formatAirport(booking.destination_name, booking.destination)}`],
+            ['Travel date', booking.flight_date || '—'],
+            ['Lead passenger', booking.passenger_name],
+            ['Seats', String(booking.passenger_count || 1)],
             ['Amount paid', `${booking.currency} ${Number(booking.amount).toFixed(2)}`]
           ].forEach(([label, value]) => {
             const term = document.createElement('dt');

@@ -39,57 +39,9 @@
         Flights
       </div>
 
-      <!-- Trip Type Toggle -->
-      <div class="trip-toggle" id="trip-toggle">
-        <div class="trip-toggle-slider" id="trip-slider"></div>
-        <button class="trip-toggle-btn active" id="btn-oneway" onclick="setTripType('oneway')">One Way</button>
-        <button class="trip-toggle-btn" id="btn-roundtrip" onclick="setTripType('roundtrip')">Round Trip</button>
-      </div>
     </div>
 
     <style>
-      .trip-toggle {
-        position: relative;
-        display: flex;
-        background: var(--background);
-        border-radius: 8px;
-        padding: 3px;
-        margin-left: auto;
-        border: 1px solid var(--border);
-        overflow: hidden;
-      }
-      .trip-toggle-slider {
-        position: absolute;
-        top: 3px; left: 3px;
-        width: calc(50% - 3px);
-        height: calc(100% - 6px);
-        background: var(--primary);
-        border-radius: 6px;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 8px rgba(229,46,45,0.25);
-        z-index: 1;
-      }
-      .trip-toggle-slider.right {
-        transform: translateX(100%);
-      }
-      .trip-toggle-btn {
-        position: relative;
-        z-index: 2;
-        padding: 0.45rem 1.1rem;
-        background: none;
-        border: none;
-        font-family: 'Inter', sans-serif;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--text-light);
-        cursor: pointer;
-        transition: color 0.25s;
-        white-space: nowrap;
-      }
-      .trip-toggle-btn.active {
-        color: #fff;
-      }
-
       .search-form-extended {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -103,54 +55,29 @@
         margin-top: 1rem;
       }
 
-      .return-group {
-        max-width: 0;
-        opacity: 0;
-        overflow: hidden;
-        transition: max-width 0.35s ease, opacity 0.3s ease, padding 0.3s ease;
-        padding: 0;
-      }
-      .return-group.visible {
-        max-width: 300px;
-        opacity: 1;
-        padding: 0;
-      }
-
-      .flight-badge {
-        display: inline-block;
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 0.15rem 0.5rem;
-        border-radius: 100px;
-        margin-left: 0.5rem;
-        vertical-align: middle;
-      }
-      .badge-oneway {
-        background: rgba(107,114,128,0.1);
-        color: #6B7280;
-      }
-      .badge-round {
-        background: rgba(229,46,45,0.1);
-        color: var(--primary);
+      .inventory-notice {
+        margin: 1.25rem 0;
+        padding: 0.85rem 1rem;
+        border-radius: 8px;
+        background: #fff7ed;
+        color: #9a3412;
+        font-size: 0.88rem;
       }
 
       @media (max-width: 768px) {
         .search-form-extended { grid-template-columns: 1fr; }
         .search-row-2 { grid-template-columns: 1fr; }
-        .trip-toggle { margin-left: 0; margin-top: 0.75rem; }
-        .search-widgets-tabs { flex-wrap: wrap; }
-        .return-group.visible { max-width: 100%; }
       }
     </style>
 
     <div class="search-form-extended">
       <div class="input-group">
         <label for="source">From</label>
-        <input type="text" id="source" class="input-control" placeholder="City or Airport (e.g. Kathmandu)">
+        <select id="source" class="input-control" required><option value="">Loading Nepal airports…</option></select>
       </div>
       <div class="input-group">
         <label for="destination">To</label>
-        <input type="text" id="destination" class="input-control" placeholder="City or Airport (e.g. Pokhara)">
+        <select id="destination" class="input-control" required><option value="">Loading Nepal airports…</option></select>
       </div>
     </div>
     <div class="search-row-2">
@@ -158,20 +85,53 @@
         <label for="depart-date">Departure Date</label>
         <input type="date" id="depart-date" class="input-control">
       </div>
-      <div class="input-group return-group" id="return-group">
-        <label for="return-date">Return Date</label>
-        <input type="date" id="return-date" class="input-control">
+      <div class="input-group">
+        <label for="passengers">Passengers</label>
+        <select id="passengers" class="input-control">
+          <option value="1">1 passenger</option><option value="2">2 passengers</option>
+          <option value="3">3 passengers</option><option value="4">4 passengers</option>
+          <option value="5">5 passengers</option><option value="6">6 passengers</option>
+          <option value="7">7 passengers</option><option value="8">8 passengers</option>
+          <option value="9">9 passengers</option>
+        </select>
       </div>
-      <button onclick="searchFlights()" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem; white-space: nowrap;">Search Flights</button>
+      <button id="search-flights" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem; white-space: nowrap;">Search Flights</button>
     </div>
   </div>
 
   <!-- Flight Results Section -->
   <div class="container">
-    <h2 class="section-title">Available Flights</h2>
-    <div id="flights">
-      <p style="text-align: center; color: var(--text-light);">Enter your details and search to find available flights.</p>
+    <h2 class="section-title">Live Nepal Flight Information</h2>
+    <p class="inventory-notice">Live flight status is informational only. It does not confirm a fare, seat availability, or a bookable ticket. Results appear only when returned by the configured provider; no demo schedule is shown as live.</p>
+    <div id="live-controls" class="flight-controls" hidden>
+      <label class="flight-control">Status
+        <select id="flight-status-filter" class="input-control">
+          <option value="">All statuses</option>
+        </select>
+      </label>
+      <label class="flight-control">Sort by
+        <select id="flight-sort" class="input-control">
+          <option value="departure">Scheduled departure</option>
+          <option value="arrival">Scheduled arrival</option>
+          <option value="airline">Airline</option>
+          <option value="status">Status</option>
+        </select>
+      </label>
+      <button id="refresh-flights" class="btn btn-primary" type="button">Refresh status</button>
+      <span id="live-checked-at" class="flight-updated"></span>
     </div>
+    <div id="flights" aria-live="polite" role="status">
+      <p class="flight-empty">Select a Nepal route and travel date to search for live flight information.</p>
+    </div>
+
+    <details class="demo-inventory">
+      <summary>Search admin-managed demo schedules for the existing booking checkout</summary>
+      <p class="inventory-notice">Demo schedules, fares, and seat counts are maintained by an administrator. eSewa UAT only confirms a demo reservation; this is not an airline-issued ticket.</p>
+      <button id="search-demo-flights" class="btn btn-primary" type="button">Search demo schedules</button>
+      <div id="demo-flights" aria-live="polite" role="status">
+        <p class="flight-empty">Demo schedules are separate from live flight status.</p>
+      </div>
+    </details>
   </div>
 
   <footer>
@@ -180,12 +140,15 @@
 
   <script>
     const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
-    let tripType = 'oneway';
-
     // ── Auth helpers ──────────────────────────────────────────────────────────
     function getToken() { return localStorage.getItem('aeronepal_token'); }
     function getUser()  {
       try { return JSON.parse(localStorage.getItem('aeronepal_user')); } catch { return null; }
+    }
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
     }
     function logout() {
       localStorage.removeItem('aeronepal_token');
@@ -203,7 +166,7 @@
           : '';
         nav.innerHTML = `
           ${adminLink}
-          <span style="font-size:0.9rem; color: var(--text-light);">Hi, <strong style="color:var(--text-dark);">${user.name}</strong></span>
+          <span style="font-size:0.9rem; color: var(--text-light);">Hi, <strong style="color:var(--text-dark);">${escapeHtml(user.name)}</strong></span>
           <button onclick="logout()" class="btn btn-primary" style="padding:0.5rem 1rem; font-size:0.85rem;">Logout</button>
         `;
       } else {
@@ -213,137 +176,229 @@
       }
     }
 
-    // ── Trip type toggle ──────────────────────────────────────────────────────
-    function setTripType(type) {
-      tripType = type;
-      const slider = document.getElementById('trip-slider');
-      const btnOne = document.getElementById('btn-oneway');
-      const btnRound = document.getElementById('btn-roundtrip');
-      const retGroup = document.getElementById('return-group');
+    const schedulesById = new Map();
+    let lastSearch = null;
+    let liveFlights = [];
 
-      if (type === 'roundtrip') {
-        slider.classList.add('right');
-        btnOne.classList.remove('active');
-        btnRound.classList.add('active');
-        retGroup.classList.add('visible');
-      } else {
-        slider.classList.remove('right');
-        btnOne.classList.add('active');
-        btnRound.classList.remove('active');
-        retGroup.classList.remove('visible');
+    function localToday() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    async function loadAirports() {
+      const response = await fetch(`${API}/api/airports/domestic`);
+      if (!response.ok) throw new Error('Unable to load domestic airports.');
+      const airports = await response.json();
+      for (const id of ['source', 'destination']) {
+        const select = document.getElementById(id);
+        select.replaceChildren(new Option('Select airport', ''));
+        airports.forEach((airport) => {
+          const option = new Option(`${airport.city} (${airport.iata})`, airport.iata);
+          select.add(option);
+        });
       }
     }
 
-    // Set min date to today
-    function initDates() {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('depart-date').setAttribute('min', today);
-      document.getElementById('return-date').setAttribute('min', today);
-      document.getElementById('depart-date').addEventListener('change', (e) => {
-        document.getElementById('return-date').setAttribute('min', e.target.value);
-      });
-    }
-
-    // ── Search flights ────────────────────────────────────────────────────────
-    window.onload = () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       renderAuth();
-      initDates();
-      searchFlights(true);
-    };
+      document.getElementById('depart-date').min = localToday();
+      document.getElementById('depart-date').value = localToday();
+      document.getElementById('search-flights').addEventListener('click', searchFlights);
+      document.getElementById('refresh-flights').addEventListener('click', searchFlights);
+      document.getElementById('search-demo-flights').addEventListener('click', searchDemoFlights);
+      document.getElementById('flight-status-filter').addEventListener('change', renderLiveFlights);
+      document.getElementById('flight-sort').addEventListener('change', renderLiveFlights);
+      try {
+        await loadAirports();
+      } catch (error) {
+        for (const id of ['source', 'destination']) {
+          document.getElementById(id).replaceChildren(new Option('Airport service unavailable', ''));
+        }
+        document.getElementById('flights').textContent = error.message;
+      }
+    });
 
-    async function searchFlights(isInitial = false) {
+    async function searchFlights() {
       const flightsContainer = document.getElementById('flights');
-      if (!isInitial) {
-        flightsContainer.innerHTML = '<p style="text-align:center;color:var(--text-light);">Searching best flights...</p>';
+      const origin = document.getElementById('source').value;
+      const destination = document.getElementById('destination').value;
+      const date = document.getElementById('depart-date').value;
+      const passengers = document.getElementById('passengers').value;
+      if (!origin || !destination || !date) {
+        flightsContainer.textContent = 'Select a Nepal origin, destination, and travel date.';
+        return;
+      }
+      if (origin === destination) {
+        flightsContainer.textContent = 'Origin and destination must be different.';
+        return;
+      }
+      if (!date || date < localToday()) {
+        flightsContainer.textContent = 'Select today or a future travel date.';
+        return;
       }
 
+      lastSearch = { origin, destination, date, passengers };
+      await loadLiveFlights();
+    }
+
+    async function loadLiveFlights() {
+      const flightsContainer = document.getElementById('flights');
+      const searchButton = document.getElementById('search-flights');
+      const refreshButton = document.getElementById('refresh-flights');
+      const controls = document.getElementById('live-controls');
+      searchButton.disabled = true;
+      refreshButton.disabled = true;
+      searchButton.textContent = 'Searching…';
+      controls.hidden = true;
+      flightsContainer.innerHTML = '<p class="flight-empty">Searching the live flight-data provider…</p>';
       try {
-        const res = await fetch(`${API}/flights`);
-        const data = await res.json();
+        const params = new URLSearchParams(lastSearch);
+        const response = await fetch(`${API}/api/flights/live?${params}`);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Unable to load live flight information.');
+        liveFlights = result.flights;
+        controls.hidden = false;
+        const statusFilter = document.getElementById('flight-status-filter');
+        const statuses = [...new Set(liveFlights.map((flight) => flight.flight_status).filter(Boolean))].sort();
+        statusFilter.replaceChildren(new Option('All statuses', ''));
+        statuses.forEach((status) => statusFilter.add(new Option(status, status)));
+        document.getElementById('live-checked-at').textContent =
+          `Provider checked: ${formatFlightTime(result.checked_at)}`;
+        renderLiveFlights();
+      } catch (error) {
+        liveFlights = [];
+        flightsContainer.textContent = error.message || 'Live flight information is unavailable.';
+      } finally {
+        searchButton.disabled = false;
+        refreshButton.disabled = false;
+        searchButton.textContent = 'Search Flights';
+      }
+    }
 
-        const sourceQuery = document.getElementById('source').value.toLowerCase().trim();
-        const destQuery   = document.getElementById('destination').value.toLowerCase().trim();
+    function formatFlightTime(value) {
+      return typeof value === 'string' ? value.replace('T', ' ') : '';
+    }
 
-        // Linear Search Algorithm: sequentially check each flight in the array
-        function linearSearchFlights(flights, sQuery, dQuery) {
-          if (!sQuery && !dQuery) return flights;
-          
-          let results = [];
-          for (let i = 0; i < flights.length; i++) {
-            const flight = flights[i];
-            const matchSource = flight.source.toLowerCase().includes(sQuery);
-            const matchDest = flight.destination.toLowerCase().includes(dQuery);
-            
-            if (sQuery && dQuery && matchSource && matchDest) {
-              results.push(flight);
-            } else if (sQuery && !dQuery && matchSource) {
-              results.push(flight);
-            } else if (!sQuery && dQuery && matchDest) {
-              results.push(flight);
-            }
+    function renderLiveFlights() {
+      const container = document.getElementById('flights');
+      if (!liveFlights.length) {
+        container.innerHTML = '<p class="flight-empty">No live flights were returned for this Nepal route and date. Provider coverage and scheduled-flight access vary; this is not evidence that no airline service exists.</p>';
+        return;
+      }
+
+      const statusFilter = document.getElementById('flight-status-filter').value;
+      const sortBy = document.getElementById('flight-sort').value;
+      const flights = liveFlights
+        .filter((flight) => !statusFilter || flight.flight_status === statusFilter)
+        .slice()
+        .sort((left, right) => {
+          if (sortBy === 'airline' || sortBy === 'status') {
+            const field = sortBy === 'airline' ? 'airline_name' : 'flight_status';
+            return String(left[field] || '').localeCompare(String(right[field] || ''));
           }
-          return results;
-        }
+          const field = sortBy === 'arrival' ? 'arrival' : 'departure';
+          const leftTime = Date.parse(left[field].scheduled || '') || Number.MAX_SAFE_INTEGER;
+          const rightTime = Date.parse(right[field].scheduled || '') || Number.MAX_SAFE_INTEGER;
+          return leftTime - rightTime;
+        });
+      if (!flights.length) {
+        container.innerHTML = '<p class="flight-empty">No flights match this status filter.</p>';
+        return;
+      }
 
-        const filtered = linearSearchFlights(data, sourceQuery, destQuery);
+      container.innerHTML = flights.map((flight) => `
+        <article class="flight-card live-flight-card">
+          <div class="flight-info live-flight-info">
+            <div class="flight-airline">
+              ${escapeHtml(flight.airline_name || 'Airline not provided')}
+              <span>${escapeHtml(flight.flight_number || 'Flight number not provided')} · Provider status data</span>
+              <span class="flight-status">${escapeHtml(flight.flight_status || 'Status not provided')}</span>
+            </div>
+            <div class="flight-route live-flight-route">
+              <div class="route-point">
+                <span class="route-city">${escapeHtml(flight.departure.airport_name)} (${escapeHtml(flight.departure.airport_code)})</span>
+                <span class="route-time">Scheduled: ${escapeHtml(formatFlightTime(flight.departure.scheduled) || 'Not provided')}</span>
+                ${flight.departure.estimated ? `<span class="route-time">Estimated: ${escapeHtml(formatFlightTime(flight.departure.estimated))}</span>` : ''}
+                ${flight.departure.actual ? `<span class="route-time">Actual: ${escapeHtml(formatFlightTime(flight.departure.actual))}</span>` : ''}
+                ${flight.departure.delay_minutes !== null ? `<span class="route-time">Reported delay: ${Number(flight.departure.delay_minutes)} min</span>` : ''}
+              </div>
+              <div class="route-divider" aria-hidden="true"><div class="route-line"></div></div>
+              <div class="route-point">
+                <span class="route-city">${escapeHtml(flight.arrival.airport_name)} (${escapeHtml(flight.arrival.airport_code)})</span>
+                <span class="route-time">Scheduled: ${escapeHtml(formatFlightTime(flight.arrival.scheduled) || 'Not provided')}</span>
+                ${flight.arrival.estimated ? `<span class="route-time">Estimated: ${escapeHtml(formatFlightTime(flight.arrival.estimated))}</span>` : ''}
+                ${flight.arrival.actual ? `<span class="route-time">Actual: ${escapeHtml(formatFlightTime(flight.arrival.actual))}</span>` : ''}
+                ${flight.arrival.delay_minutes !== null ? `<span class="route-time">Reported delay: ${Number(flight.arrival.delay_minutes)} min</span>` : ''}
+              </div>
+            </div>
+          </div>
+          ${flight.provider_updated_at ? `<div class="flight-provider-time">Provider update: ${escapeHtml(formatFlightTime(flight.provider_updated_at))}</div>` : ''}
+        </article>
+      `).join('');
+    }
 
-        if (filtered.length === 0) {
-          flightsContainer.innerHTML = '<p style="text-align:center;color:var(--text-light);">No flights found for this route. Try another search.</p>';
+    async function searchDemoFlights() {
+      const container = document.getElementById('demo-flights');
+      const origin = document.getElementById('source').value;
+      const destination = document.getElementById('destination').value;
+      const date = document.getElementById('depart-date').value;
+      const passengers = document.getElementById('passengers').value;
+      if (!origin || !destination || !date || origin === destination || date < localToday()) {
+        container.textContent = 'Select a valid Nepal route and today or a future travel date first.';
+        return;
+      }
+      container.innerHTML = '<p class="flight-empty">Searching admin-managed demo schedules…</p>';
+      try {
+        const params = new URLSearchParams({ origin, destination, date, passengers });
+        const response = await fetch(`${API}/flights?${params}`);
+        const flights = await response.json();
+        if (!response.ok) throw new Error(flights.message || 'Unable to search demo schedules.');
+        schedulesById.clear();
+        flights.forEach((flight) => schedulesById.set(String(flight.id), flight));
+        if (!flights.length) {
+          container.innerHTML = '<p class="flight-empty">No admin-managed demo schedule has been entered for this route and date.</p>';
           return;
         }
 
-        const isRound = tripType === 'roundtrip';
-        const badgeHtml = isRound
-          ? '<span class="flight-badge badge-round">Round Trip</span>'
-          : '<span class="flight-badge badge-oneway">One Way</span>';
-
-        flightsContainer.innerHTML = filtered.map(f => {
-          const displayPrice = isRound ? (f.price * 2) : f.price;
-          return `
+        container.innerHTML = flights.map((f) => `
           <div class="flight-card">
             <div class="flight-info">
               <div class="flight-airline">
-                ${f.flight_name}
-                <span>Direct Flight ${badgeHtml}</span>
+                ${escapeHtml(f.airline_name)} · ${escapeHtml(f.flight_name)}
+                <span>Domestic Nepal · Admin-managed demo schedule</span>
               </div>
               <div class="flight-route">
                 <div class="route-point">
-                  <span class="route-city">${f.source}</span>
-                  <span class="route-time">${f.departure_time || '08:00 AM'}</span>
+                  <span class="route-city">${escapeHtml(f.source_name)} (${escapeHtml(f.source)})</span>
+                  <span class="route-time">${escapeHtml(f.departure_time)}</span>
                 </div>
                 <div class="route-divider">
-                  <span style="font-size:0.8rem;">${f.duration || '1h 15m'}</span>
+                  <span style="font-size:0.8rem;">${escapeHtml(f.duration)}</span>
                   <div class="route-line"></div>
                 </div>
                 <div class="route-point">
-                  <span class="route-city">${f.destination}</span>
-                  <span class="route-time">Arrival</span>
+                  <span class="route-city">${escapeHtml(f.destination_name)} (${escapeHtml(f.destination)})</span>
+                  <span class="route-time">${escapeHtml(f.flight_date)}</span>
                 </div>
               </div>
             </div>
             <div class="flight-action">
-              <div class="flight-price">NPR ${displayPrice}${isRound ? '<small style="font-size:0.7rem;color:var(--text-light);display:block;">for 2 flights</small>' : ''}</div>
-              <button onclick="book(${f.id})" class="btn btn-primary">Book Now</button>
+              <div class="flight-price">NPR ${Number(f.price).toFixed(2)}<small style="font-size:0.7rem;color:var(--text-light);display:block;">per passenger · ${Number(f.seats_available)} demo seats</small></div>
+              <button onclick="book(${Number(f.id)})" class="btn btn-primary">Book ${passengers}</button>
             </div>
           </div>
-        `}).join('');
-
-      } catch (err) {
-        flightsContainer.innerHTML = '<p style="text-align:center;color:var(--primary);">Failed to load flights. Make sure the backend server is running.</p>';
+        `).join('');
+      } catch (error) {
+        container.textContent = error.message || 'Failed to load demo schedules.';
       }
     }
 
     function book(id) {
-      const departDate = document.getElementById('depart-date').value;
-      const returnDate = document.getElementById('return-date').value;
-      
-      // Store in localStorage so the flight ID is never lost
+      const flight = schedulesById.get(String(id));
+      if (!flight) return;
       localStorage.setItem('selected_flight_id', id);
-      localStorage.setItem('selected_trip_type', tripType);
-      
-      let url = `booking.html?flight=${id}&trip=${tripType}`;
-      if (departDate) url += `&depart=${departDate}`;
-      if (tripType === 'roundtrip' && returnDate) url += `&return=${returnDate}`;
+      localStorage.setItem('selected_passenger_count', document.getElementById('passengers').value);
+      const url = `booking.html?flight=${id}&date=${encodeURIComponent(flight.flight_date)}&passengers=${encodeURIComponent(document.getElementById('passengers').value)}`;
 
       if (getToken()) {
         window.location.href = url;

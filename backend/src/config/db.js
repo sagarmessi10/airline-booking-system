@@ -1,4 +1,4 @@
-// MySQL pool + one-time setup (database, tables from data/schema.sql, seed from data/flights.json).
+// MySQL pool + one-time setup (database, schema migrations, verified registry seed).
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2");
@@ -81,8 +81,16 @@ async function init() {
     host: env.db.host, user: env.db.user, password: env.db.password, database: env.db.name, port,
     waitForConnections: true, connectionLimit: 10,
     decimalNumbers: true, // DECIMAL -> number
+    dateStrings: true,
   });
   const q = (sql, params) => run(pool, sql, params);
+
+  const existingAirlineTable = await q("SHOW TABLES LIKE 'domestic_airlines'");
+  if (existingAirlineTable.length > 0 &&
+      (await q("SHOW COLUMNS FROM domestic_airlines LIKE 'id'")).length === 0) {
+    await q("ALTER TABLE domestic_airlines ADD COLUMN id INT NOT NULL AUTO_INCREMENT UNIQUE FIRST");
+    console.log("Migrated: added domestic_airlines.id");
+  }
 
   // 3. schema (data/schema.sql)
   const statements = fs.readFileSync(path.join(env.dataDir, "schema.sql"), "utf8")
@@ -98,6 +106,15 @@ async function init() {
     }
   };
   await addColumn("flights", "duration", "VARCHAR(20) NOT NULL DEFAULT '1h 15m'");
+  await addColumn("flights", "route_id", "INT NULL");
+  await addColumn("flights", "airline_id", "INT NULL");
+  await addColumn("flights", "flight_date", "DATE NULL");
+  await addColumn("flights", "arrival_time", "TIME NULL");
+  await addColumn("flights", "seat_capacity", "SMALLINT UNSIGNED NOT NULL DEFAULT 0");
+  await addColumn("flights", "seats_reserved", "SMALLINT UNSIGNED NOT NULL DEFAULT 0");
+  await addColumn("flights", "seats_booked", "SMALLINT UNSIGNED NOT NULL DEFAULT 0");
+  await addColumn("flights", "inventory_source", "VARCHAR(30) NOT NULL DEFAULT 'ADMIN_DEMO'");
+  await addColumn("bookings", "passenger_count", "SMALLINT UNSIGNED NOT NULL DEFAULT 1");
   await addColumn("bookings", "created_at", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
   await addColumn("bookings", "booking_reference", "VARCHAR(40) NULL");
   await addColumn("bookings", "passenger_name", "VARCHAR(100) NULL");
@@ -123,17 +140,51 @@ async function init() {
     await q("ALTER TABLE bookings ADD UNIQUE KEY uq_bookings_reference (booking_reference)");
   }
   await addColumn("payments", "callback_signature_valid", "BOOLEAN NOT NULL DEFAULT FALSE");
+  await addColumn("payments", "idempotency_key", "VARCHAR(100) NULL");
   await addColumn("user", "role", "VARCHAR(10) NOT NULL DEFAULT 'user'");
-
-  // 5. seed data (data/flights.json) on first run
-  const [{ n }] = await q("SELECT COUNT(*) AS n FROM flights");
-  if (n === 0) {
-    const flights = JSON.parse(fs.readFileSync(path.join(env.dataDir, "flights.json"), "utf8"));
-    await q(
-      "INSERT INTO flights (flight_name, source, destination, departure_time, price, duration) VALUES ?",
-      [flights.map((f) => [f.flight_name, f.source, f.destination, f.departure_time, f.price, f.duration])]
+  const flightSearchIndex = await q("SHOW INDEX FROM flights WHERE Key_name = 'ix_flights_search'");
+  if (flightSearchIndex.length === 0) {
+    await q("ALTER TABLE flights ADD INDEX ix_flights_search (flight_date, route_id, airline_id)");
+  }
+  const flightUniqueIndex = await q("SHOW INDEX FROM flights WHERE Key_name = 'uq_flights_schedule'");
+  if (flightUniqueIndex.length === 0) {
+    await q("ALTER TABLE flights ADD UNIQUE KEY uq_flights_schedule (route_id, airline_id, flight_date, departure_time, flight_name)");
+  }
+  const paymentIdempotencyIndex = await q("SHOW INDEX FROM payments WHERE Key_name = 'uq_payments_idempotency_key'");
+  if (paymentIdempotencyIndex.length === 0) {
+    await q("ALTER TABLE payments ADD UNIQUE KEY uq_payments_idempotency_key (idempotency_key)");
+  }
+  const addForeignKey = async (table, constraint, statement) => {
+    const [row] = await q(
+      "SELECT COUNT(*) AS count FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?",
+      [env.db.name, table, constraint]
     );
-    console.log(`Seeded ${flights.length} sample flights from data/flights.json`);
+    if (Number(row.count) === 0) await q(statement);
+  };
+  await addForeignKey("flights", "fk_flights_domestic_route",
+    "ALTER TABLE flights ADD CONSTRAINT fk_flights_domestic_route FOREIGN KEY (route_id) REFERENCES domestic_routes(id) ON DELETE RESTRICT");
+  await addForeignKey("flights", "fk_flights_domestic_airline",
+    "ALTER TABLE flights ADD CONSTRAINT fk_flights_domestic_airline FOREIGN KEY (airline_id) REFERENCES domestic_airlines(id) ON DELETE RESTRICT");
+
+  // Airport and carrier metadata is a restricted registry, not a source of schedules or fares.
+  const { airports, airlines, domesticRoutes } = require("../../data/domestic-registry");
+  for (const airport of airports) {
+    await q(
+      "INSERT INTO domestic_airports (iata, name, city, province) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name), city=VALUES(city), province=VALUES(province)",
+      [airport.iata, airport.name, airport.city, airport.province]
+    );
+  }
+  for (const route of domesticRoutes) {
+    await q(
+      "INSERT IGNORE INTO domestic_routes (origin_iata, destination_iata, active) VALUES (?, ?, TRUE)",
+      [route.origin_iata, route.destination_iata]
+    );
+  }
+  for (const airline of airlines) {
+    await q(
+      "INSERT INTO domestic_airlines (iata, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name)",
+      [airline.iata, airline.name]
+    );
   }
 
   console.log(`Database connected (${env.db.host}:${port}/${env.db.name})`);

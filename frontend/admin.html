@@ -330,6 +330,14 @@
       padding: 3rem;
       color: var(--text-light);
     }
+    .inventory-notice {
+      margin: 0 0 1.25rem;
+      padding: 0.9rem 1.1rem;
+      border-radius: 8px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 0.88rem;
+    }
 
     /* ── Toast ── */
     .toast {
@@ -383,7 +391,15 @@
       </a></li>
       <li><a href="#" onclick="switchPanel('flights', this)" id="nav-flights">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z"/></svg>
-        <span>Flights</span>
+        <span>Schedules & Fares</span>
+      </a></li>
+      <li><a href="#" onclick="switchPanel('airports', this)" id="nav-airports">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+        <span>Domestic Airports</span>
+      </a></li>
+      <li><a href="#" onclick="switchPanel('routes', this)" id="nav-routes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7H18"/><circle cx="18" cy="5" r="3"/></svg>
+        <span>Domestic Routes</span>
       </a></li>
       <li><a href="#" onclick="switchPanel('bookings', this)" id="nav-bookings">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
@@ -453,35 +469,65 @@
       </div>
     </div>
 
-    <!-- ═══════ FLIGHTS PANEL ═══════ -->
+    <!-- ═══════ DOMESTIC SCHEDULES PANEL ═══════ -->
     <div class="panel" id="panel-flights">
       <div class="add-flight-form" id="add-flight-form">
-        <h3 id="flight-form-title">Add New Flight</h3>
+        <h3 id="flight-form-title">Add Admin-Managed Demo Schedule</h3>
         <input type="hidden" id="edit-flight-id">
         <div class="form-grid">
-          <div><label class="admin-label">Flight Name</label><input type="text" id="af-name" class="admin-input" placeholder="e.g. Buddha Air 201"></div>
-          <div><label class="admin-label">Source</label><input type="text" id="af-source" class="admin-input" placeholder="e.g. Kathmandu"></div>
-          <div><label class="admin-label">Destination</label><input type="text" id="af-dest" class="admin-input" placeholder="e.g. Pokhara"></div>
-          <div><label class="admin-label">Departure Time</label><input type="text" id="af-time" class="admin-input" placeholder="e.g. 08:00 AM"></div>
-          <div><label class="admin-label">Duration</label><input type="text" id="af-duration" class="admin-input" placeholder="e.g. 1h 15m"></div>
-          <div><label class="admin-label">Price (NPR)</label><input type="number" id="af-price" class="admin-input" placeholder="e.g. 5500"></div>
+          <div><label class="admin-label" for="af-name">Flight number / label</label><input type="text" id="af-name" class="admin-input" placeholder="e.g. BA201" required maxlength="30"></div>
+          <div><label class="admin-label" for="af-airline">Nepal airline</label><select id="af-airline" class="admin-input" required></select></div>
+          <div><label class="admin-label" for="af-route">Active domestic route</label><select id="af-route" class="admin-input" required></select></div>
+          <div><label class="admin-label" for="af-date">Schedule date</label><input type="date" id="af-date" class="admin-input" required></div>
+          <div><label class="admin-label" for="af-time">Departure time (Nepal time)</label><input type="time" id="af-time" class="admin-input" required></div>
+          <div><label class="admin-label" for="af-duration">Demo duration</label><input type="text" id="af-duration" class="admin-input" placeholder="e.g. 35m or 1h 15m" required></div>
+          <div><label class="admin-label" for="af-price">Demo fare per seat (NPR)</label><input type="number" id="af-price" class="admin-input" min="0.01" step="0.01" required></div>
+          <div><label class="admin-label" for="af-seats">Seat inventory</label><input type="number" id="af-seats" class="admin-input" min="1" max="500" required></div>
           <div class="form-grid-full">
             <button class="btn-sm" style="background:var(--bg);border:1px solid var(--border);" onclick="cancelFlightForm()">Cancel</button>
-            <button class="btn-sm btn-primary-sm" onclick="submitFlight();" id="flight-submit-btn">Add Flight</button>
+            <button class="btn-sm btn-primary-sm" onclick="submitFlight();" id="flight-submit-btn">Add Schedule</button>
           </div>
         </div>
       </div>
 
+      <p class="inventory-notice">Admin-managed DEMO inventory only. This dashboard does not import verified live schedules, fares, seat availability, or airline booking authorization.</p>
       <div class="table-card">
         <div class="table-header">
-          <h2>All Flights</h2>
-          <button class="btn-sm btn-primary-sm" onclick="showAddFlight()">+ Add Flight</button>
+          <h2>Domestic Schedules, NPR Fares & Seats</h2>
+          <button class="btn-sm btn-primary-sm" onclick="showAddFlight()">+ Add Schedule</button>
         </div>
         <table>
-          <thead><tr><th>ID</th><th>Flight</th><th>From</th><th>To</th><th>Time</th><th>Duration</th><th>Price</th><th>Actions</th></tr></thead>
+          <thead><tr><th>ID</th><th>Date</th><th>Airline / Flight</th><th>Domestic Route</th><th>Time</th><th>Fare</th><th>Seats</th><th>Actions</th></tr></thead>
           <tbody id="flights-body">
-            <tr><td colspan="7" class="empty-msg">Loading...</td></tr>
+            <tr><td colspan="8" class="empty-msg">Loading...</td></tr>
           </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-airports">
+      <div class="table-card">
+        <div class="table-header"><h2>Verified Nepal Airport Registry</h2></div>
+        <p style="padding:1rem 1.5rem;color:var(--text-light);">Only registry airports can be enabled; airport codes and locations are not free-form.</p>
+        <table><thead><tr><th>IATA</th><th>Airport</th><th>City</th><th>Province</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="airports-body"><tr><td colspan="6" class="empty-msg">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-routes">
+      <div class="add-flight-form visible">
+        <h3>Add Domestic Nepal Route</h3>
+        <div class="form-grid">
+          <div><label class="admin-label" for="route-origin">Origin airport</label><select id="route-origin" class="admin-input"></select></div>
+          <div><label class="admin-label" for="route-destination">Destination airport</label><select id="route-destination" class="admin-input"></select></div>
+          <div class="form-grid-full"><button class="btn-sm btn-primary-sm" onclick="addRoute()">Add Route</button></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h2>Domestic Routes</h2></div>
+        <table><thead><tr><th>ID</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="routes-body"><tr><td colspan="5" class="empty-msg">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -540,6 +586,9 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       })[char]);
     }
+    function formatAirport(city, code) {
+      return city && code ? `${city} (${code})` : city || code || '—';
+    }
 
     function bookingStatusBadge(booking) {
       const status = booking.payment_status === 'PAID' && booking.booking_status === 'CONFIRMED'
@@ -573,7 +622,11 @@
     };
 
     // ── Panel Switching ──
-    const titles = { overview: 'Dashboard Overview', flights: 'Flight Management', bookings: 'All Bookings', users: 'User Management' };
+    const titles = {
+      overview: 'Dashboard Overview', flights: 'Domestic Schedules & Fares',
+      airports: 'Domestic Airport Registry', routes: 'Domestic Route Management',
+      bookings: 'All Bookings', users: 'User Management'
+    };
 
     function switchPanel(name, el) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -583,6 +636,8 @@
       document.getElementById('page-title').textContent = titles[name] || 'Dashboard';
 
       if (name === 'flights') loadFlights();
+      if (name === 'airports') loadAirports();
+      if (name === 'routes') { loadRoutes(); loadAirportOptions().catch((error) => showToast(error.message)); }
       if (name === 'bookings') loadAllBookings();
       if (name === 'users') loadUsers();
       if (name === 'overview') { loadStats(); loadRecentBookings(); }
@@ -593,10 +648,11 @@
       try {
         const res = await fetch(`${API}/admin/stats`, { headers: authHeaders() });
         const d = await res.json();
+        if (!res.ok) throw new Error(d.message || 'Unable to load dashboard statistics.');
         document.getElementById('stat-users').textContent = d.totalUsers || 0;
         document.getElementById('stat-flights').textContent = d.totalFlights || 0;
         document.getElementById('stat-bookings').textContent = d.totalBookings || 0;
-      } catch { }
+      } catch (error) { showToast(error.message); }
     }
 
     // ── Recent Bookings (overview) ──
@@ -611,62 +667,86 @@
             <td>#${b.booking_id}</td>
             <td>${escapeHtml(b.passenger_name || b.user_name)}</td>
             <td>${escapeHtml(b.flight_name)}</td>
-            <td>${escapeHtml(b.source)} → ${escapeHtml(b.destination)}</td>
+            <td>${escapeHtml(formatAirport(b.source_name, b.source))} → ${escapeHtml(formatAirport(b.destination_name, b.destination))}</td>
             <td>${escapeHtml(b.currency || 'NPR')} ${escapeHtml(b.price)}</td>
             <td>${bookingStatusBadge(b)}</td>
           </tr>
         `).join('');
-      } catch { }
+      } catch (error) { showToast(error.message); }
     }
 
-    // ── Flights ──
+    async function adminRequest(url, options = {}) {
+      const response = await fetch(`${API}${url}`, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Admin request failed.');
+      return data;
+    }
+
+    // ── Domestic schedules ──
     async function loadFlights() {
       try {
-        const res = await fetch(`${API}/flights`);
-        const data = await res.json();
+        const [data, routes, airlines] = await Promise.all([
+          adminRequest('/admin/domestic/schedules'),
+          adminRequest('/admin/domestic/routes'),
+          adminRequest('/admin/domestic/airlines')
+        ]);
+        const routeSelect = document.getElementById('af-route');
+        routeSelect.replaceChildren(new Option('Select a domestic route', ''));
+        routes.filter((route) => route.active).forEach((route) => {
+          routeSelect.add(new Option(`${route.origin_city} (${route.origin_iata}) → ${route.destination_city} (${route.destination_iata})`, route.id));
+        });
+        const airlineSelect = document.getElementById('af-airline');
+        airlineSelect.replaceChildren(new Option('Select airline', ''));
+        airlines.filter((airline) => airline.active).forEach((airline) => airlineSelect.add(new Option(`${airline.name} (${airline.iata})`, airline.id)));
+        const today = new Date();
+        document.getElementById('af-date').min =
+          `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const body = document.getElementById('flights-body');
-        if (!data.length) { body.innerHTML = '<tr><td colspan="7" class="empty-msg">No flights.</td></tr>'; return; }
+        if (!data.length) { body.innerHTML = '<tr><td colspan="8" class="empty-msg">No admin-managed schedules yet.</td></tr>'; return; }
         body.innerHTML = data.map(f => `
           <tr>
             <td>${f.id}</td>
-            <td style="font-weight:600;">${f.flight_name}</td>
-            <td>${f.source}</td>
-            <td>${f.destination}</td>
-            <td>${f.departure_time || '–'}</td>
-            <td>${f.duration || '1h 15m'}</td>
-            <td style="font-weight:600;">NPR ${f.price}</td>
+            <td>${escapeHtml(String(f.flight_date).slice(0, 10))}</td>
+            <td style="font-weight:600;">${escapeHtml(f.airline_name)} · ${escapeHtml(f.flight_name)}</td>
+            <td>${escapeHtml(f.source_name)} (${escapeHtml(f.source)}) → ${escapeHtml(f.destination_name)} (${escapeHtml(f.destination)})</td>
+            <td>${escapeHtml(String(f.departure_time).slice(0, 5))} · ${escapeHtml(f.duration)}</td>
+            <td style="font-weight:600;">NPR ${Number(f.price).toFixed(2)}</td>
+            <td>${f.seats_available} / ${f.seat_capacity} available</td>
             <td>
-              <button class="btn-sm btn-info" onclick="editFlight(${f.id},'${esc(f.flight_name)}','${esc(f.source)}','${esc(f.destination)}','${esc(f.departure_time||'')}','${esc(f.duration||'')}',${f.price})">Edit</button>
+              <button class="btn-sm btn-info" onclick="editFlight(${f.id})">Edit</button>
               <button class="btn-sm btn-danger" onclick="deleteFlight(${f.id})">Delete</button>
             </td>
           </tr>
         `).join('');
-      } catch { }
+        window.schedulesForAdmin = data;
+      } catch (error) { showToast(error.message); }
     }
-
-    function esc(s) { return (s||'').replace(/'/g, "\\'"); }
 
     // Add / Edit flight form
     let editingFlightId = null;
 
     function showAddFlight() {
       editingFlightId = null;
-      document.getElementById('flight-form-title').textContent = 'Add New Flight';
-      document.getElementById('flight-submit-btn').textContent = 'Add Flight';
-      ['af-name','af-source','af-dest','af-time','af-duration','af-price'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('flight-form-title').textContent = 'Add Admin-Managed Demo Schedule';
+      document.getElementById('flight-submit-btn').textContent = 'Add Schedule';
+      ['af-name','af-route','af-airline','af-date','af-time','af-duration','af-price','af-seats'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('add-flight-form').classList.add('visible');
     }
 
-    function editFlight(id, name, src, dest, time, duration, price) {
+    function editFlight(id) {
+      const flight = (window.schedulesForAdmin || []).find((entry) => entry.id === id);
+      if (!flight) return;
       editingFlightId = id;
-      document.getElementById('flight-form-title').textContent = 'Edit Flight #' + id;
+      document.getElementById('flight-form-title').textContent = 'Edit Demo Schedule #' + id;
       document.getElementById('flight-submit-btn').textContent = 'Save Changes';
-      document.getElementById('af-name').value = name;
-      document.getElementById('af-source').value = src;
-      document.getElementById('af-dest').value = dest;
-      document.getElementById('af-time').value = time;
-      document.getElementById('af-duration').value = duration;
-      document.getElementById('af-price').value = price;
+      document.getElementById('af-name').value = flight.flight_name;
+      document.getElementById('af-route').value = flight.route_id;
+      document.getElementById('af-airline').value = flight.airline_id;
+      document.getElementById('af-date').value = String(flight.flight_date).slice(0, 10);
+      document.getElementById('af-time').value = String(flight.departure_time).slice(0, 5);
+      document.getElementById('af-duration').value = flight.duration;
+      document.getElementById('af-price').value = flight.price;
+      document.getElementById('af-seats').value = flight.seat_capacity;
       document.getElementById('add-flight-form').classList.add('visible');
     }
 
@@ -677,50 +757,114 @@
 
     async function submitFlight() {
       const flight_name = document.getElementById('af-name').value.trim();
-      const source = document.getElementById('af-source').value.trim();
-      const destination = document.getElementById('af-dest').value.trim();
-      const departure_time = document.getElementById('af-time').value.trim();
-      const duration = document.getElementById('af-duration').value.trim();
-      const price = document.getElementById('af-price').value.trim();
-
-      if (!flight_name || !source || !destination || !price) {
-        showToast('Please fill in all required fields.');
-        return;
-      }
-
-      if (isNaN(price) || Number(price) <= 0) {
-        showToast('Price must be a valid positive number.');
-        return;
-      }
+      const schedule = {
+        flight_name,
+        route_id: document.getElementById('af-route').value,
+        airline_id: document.getElementById('af-airline').value,
+        flight_date: document.getElementById('af-date').value,
+        departure_time: document.getElementById('af-time').value,
+        duration: document.getElementById('af-duration').value,
+        price: document.getElementById('af-price').value,
+        seat_capacity: document.getElementById('af-seats').value
+      };
 
       try {
-        if (editingFlightId) {
-          await fetch(`${API}/admin/flights/${editingFlightId}`, {
-            method: 'PUT', headers: authHeaders(),
-            body: JSON.stringify({ flight_name, source, destination, departure_time, duration: duration || '1h 15m', price })
-          });
-          showToast('Flight updated successfully!');
-        } else {
-          await fetch(`${API}/add-flight`, {
-            method: 'POST', headers: authHeaders(),
-            body: JSON.stringify({ flight_name, source, destination, departure_time, duration: duration || '1h 15m', price })
-          });
-          showToast('Flight added successfully!');
-        }
+        const url = editingFlightId ? `/admin/domestic/schedules/${editingFlightId}` : '/admin/domestic/schedules';
+        await adminRequest(url, { method: editingFlightId ? 'PUT' : 'POST', body: JSON.stringify(schedule) });
+        showToast(editingFlightId ? 'Demo schedule updated.' : 'Admin-managed demo schedule added.');
         cancelFlightForm();
         loadFlights();
         loadStats();
-      } catch { showToast('Failed to save flight.'); }
+      } catch (error) { showToast(error.message); }
     }
 
     async function deleteFlight(id) {
       if (!confirm('Are you sure you want to delete this flight?')) return;
       try {
-        await fetch(`${API}/admin/flights/${id}`, { method: 'DELETE', headers: authHeaders() });
-        showToast('Flight deleted.');
+        await adminRequest(`/admin/domestic/schedules/${id}`, { method: 'DELETE' });
+        showToast('Demo schedule deleted.');
         loadFlights();
         loadStats();
-      } catch { showToast('Failed to delete flight.'); }
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function loadAirportOptions() {
+      const airports = await adminRequest('/admin/domestic/airports');
+      for (const id of ['route-origin', 'route-destination']) {
+        const select = document.getElementById(id);
+        select.replaceChildren(new Option('Select airport', ''));
+        airports.filter((airport) => airport.active).forEach((airport) =>
+          select.add(new Option(`${airport.city} (${airport.iata})`, airport.iata)));
+      }
+    }
+
+    async function loadAirports() {
+      try {
+        const airports = await adminRequest('/admin/domestic/airports');
+        document.getElementById('airports-body').innerHTML = airports.map((airport) => `
+          <tr><td>${escapeHtml(airport.iata)}</td><td>${escapeHtml(airport.name)}</td>
+          <td>${escapeHtml(airport.city)}</td><td>${escapeHtml(airport.province)}</td>
+          <td>${airport.active ? 'Active' : 'Inactive'}</td>
+          <td><button class="btn-sm ${airport.active ? 'btn-danger' : 'btn-success'}"
+            onclick="setAirportActive('${escapeHtml(airport.iata)}', ${!airport.active})">${airport.active ? 'Deactivate' : 'Activate'}</button></td></tr>
+        `).join('') || '<tr><td colspan="6" class="empty-msg">No domestic airports.</td></tr>';
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function setAirportActive(iata, active) {
+      try {
+        await adminRequest(`/admin/domestic/airports/${encodeURIComponent(iata)}`, {
+          method: 'PATCH', body: JSON.stringify({ active })
+        });
+        await loadAirports();
+        showToast('Airport registry updated.');
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function loadRoutes() {
+      try {
+        const routes = await adminRequest('/admin/domestic/routes');
+        document.getElementById('routes-body').innerHTML = routes.map((route) => `
+          <tr><td>${route.id}</td>
+          <td>${escapeHtml(route.origin_city)} (${escapeHtml(route.origin_iata)})</td>
+          <td>${escapeHtml(route.destination_city)} (${escapeHtml(route.destination_iata)})</td>
+          <td>${route.active ? 'Active' : 'Inactive'}</td>
+          <td><button class="btn-sm ${route.active ? 'btn-danger' : 'btn-success'}"
+            onclick="setRouteActive(${route.id}, ${!route.active})">${route.active ? 'Deactivate' : 'Activate'}</button>
+            <button class="btn-sm btn-danger" onclick="deleteRoute(${route.id})">Delete</button></td></tr>
+        `).join('') || '<tr><td colspan="5" class="empty-msg">No domestic routes.</td></tr>';
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function addRoute() {
+      try {
+        await adminRequest('/admin/domestic/routes', {
+          method: 'POST',
+          body: JSON.stringify({
+            origin_iata: document.getElementById('route-origin').value,
+            destination_iata: document.getElementById('route-destination').value
+          })
+        });
+        await loadRoutes();
+        showToast('Domestic route added.');
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function setRouteActive(id, active) {
+      try {
+        await adminRequest(`/admin/domestic/routes/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) });
+        await loadRoutes();
+        showToast('Domestic route updated.');
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function deleteRoute(id) {
+      if (!confirm('Delete this domestic route? Routes with schedules must be deactivated instead.')) return;
+      try {
+        await adminRequest(`/admin/domestic/routes/${id}`, { method: 'DELETE' });
+        await loadRoutes();
+        showToast('Domestic route deleted.');
+      } catch (error) { showToast(error.message); }
     }
 
     // ── All Bookings ──
@@ -736,12 +880,12 @@
             <td>${escapeHtml(b.passenger_name || b.user_name)}</td>
             <td>${escapeHtml(b.user_email)}</td>
             <td>${escapeHtml(b.flight_name)}</td>
-            <td>${escapeHtml(b.source)} → ${escapeHtml(b.destination)}</td>
+            <td>${escapeHtml(formatAirport(b.source_name, b.source))} → ${escapeHtml(formatAirport(b.destination_name, b.destination))}</td>
             <td style="font-weight:600;">${escapeHtml(b.currency || 'NPR')} ${escapeHtml(b.price)}</td>
             <td>${bookingStatusBadge(b)}</td>
           </tr>
         `).join('');
-      } catch { }
+      } catch (error) { showToast(error.message); }
     }
 
     // ── Users ──
@@ -765,7 +909,7 @@
             </td>
           </tr>
         `).join('');
-      } catch { }
+      } catch (error) { showToast(error.message); }
     }
 
     async function changeRole(id, role) {

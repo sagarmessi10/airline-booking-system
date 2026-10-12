@@ -61,11 +61,22 @@ function formatAmount(value) {
   return (minorUnits / 100).toFixed(2);
 }
 
+function multiplyAmount(value, multiplier) {
+  const minorUnits = toMinorUnits(value);
+  if (minorUnits === null || !Number.isInteger(multiplier) || multiplier < 1 ||
+      !Number.isSafeInteger(minorUnits * multiplier)) {
+    throw new Error("Invalid payment amount.");
+  }
+  const totalMinorUnits = minorUnits * multiplier;
+  return `${Math.floor(totalMinorUnits / 100)}.${String(totalMinorUnits % 100).padStart(2, "0")}`;
+}
+
 module.exports = {
   SIGNED_REQUEST_FIELDS,
   createSignature,
   decodeResponse,
   formatAmount,
+  multiplyAmount,
   toMinorUnits,
   verifyResponseSignature,
 };

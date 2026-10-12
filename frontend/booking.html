@@ -21,15 +21,15 @@
 
   <main class="checkout-container">
     <header class="checkout-header">
-      <p class="checkout-eyebrow">SECURE CHECKOUT · eSEWA UAT</p>
+      <p class="checkout-eyebrow">DEMO INVENTORY · eSEWA UAT</p>
       <h1>Complete your booking</h1>
-      <p>Your fare is confirmed after eSewa verifies the test transaction.</p>
+      <p>The eSewa UAT payment confirms only this AeroNepal demo reservation. It is not an airline-issued ticket or live booking.</p>
     </header>
 
     <div class="checkout-layout">
       <section class="checkout-card">
         <h2>Passenger information</h2>
-        <p class="checkout-muted">Enter the details for the passenger travelling.</p>
+        <p class="checkout-muted" id="passenger-count-note">Enter the lead passenger details for this reservation.</p>
         <div id="booking-msg" class="checkout-message" role="alert" hidden></div>
         <form id="passenger-form" class="checkout-form">
           <div class="input-group">
@@ -86,6 +86,8 @@
     const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
     const ESEWA_FORM_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
     let selectedFlight = null;
+    let passengerCount = 1;
+    let idempotencyKey = null;
 
     function getToken() { return localStorage.getItem('aeronepal_token'); }
     function getUser() {
@@ -136,19 +138,28 @@
       nav.replaceChildren(greeting, logoutButton);
       document.getElementById('passenger-name').value = user.name || '';
 
-      const flightId = new URLSearchParams(window.location.search).get('flight') || localStorage.getItem('selected_flight_id');
+      const query = new URLSearchParams(window.location.search);
+      const flightId = query.get('flight') || localStorage.getItem('selected_flight_id');
+      const requestedPassengers = query.get('passengers') || localStorage.getItem('selected_passenger_count') || '1';
+      passengerCount = /^\d+$/.test(requestedPassengers) && Number(requestedPassengers) >= 1 && Number(requestedPassengers) <= 9
+        ? Number(requestedPassengers) : 1;
       if (!flightId || !/^\d+$/.test(flightId)) {
         displayMessage('No valid flight is selected. Return to the home page and choose a flight.');
         return;
       }
+      const storageKey = `aeronepal_checkout_idempotency_${flightId}_${passengerCount}`;
+      idempotencyKey = sessionStorage.getItem(storageKey);
+      if (!idempotencyKey) {
+        idempotencyKey = crypto.randomUUID();
+        sessionStorage.setItem(storageKey, idempotencyKey);
+      }
 
       try {
-        const response = await fetch(`${API}/flights`);
+        const response = await fetch(`${API}/flights/${encodeURIComponent(flightId)}`);
         if (!response.ok) throw new Error('Unable to load flights.');
-        const flights = await response.json();
-        selectedFlight = flights.find((flight) => String(flight.id) === flightId);
-        if (!selectedFlight) {
-          displayMessage('The selected flight is no longer available. Please choose another flight.');
+        selectedFlight = await response.json();
+        if (query.get('date') && query.get('date') !== selectedFlight.flight_date) {
+          displayMessage('The selected schedule date does not match. Search again and select a current schedule.');
           return;
         }
         const summary = document.getElementById('flight-summary');
@@ -159,7 +170,7 @@
         route.className = 'itinerary-route';
         const departure = document.createElement('div');
         const departureCity = document.createElement('strong');
-        departureCity.textContent = selectedFlight.source;
+        departureCity.textContent = `${selectedFlight.source_name} (${selectedFlight.source})`;
         const departureLabel = document.createElement('span');
         departureLabel.textContent = 'Departure';
         departure.append(departureCity, departureLabel);
@@ -169,18 +180,21 @@
         arrow.textContent = '→';
         const arrival = document.createElement('div');
         const arrivalCity = document.createElement('strong');
-        arrivalCity.textContent = selectedFlight.destination;
+        arrivalCity.textContent = `${selectedFlight.destination_name} (${selectedFlight.destination})`;
         const arrivalLabel = document.createElement('span');
         arrivalLabel.textContent = 'Arrival';
         arrival.append(arrivalCity, arrivalLabel);
         route.append(departure, arrow, arrival);
         const meta = document.createElement('div');
         meta.className = 'itinerary-meta';
-        meta.textContent = `${selectedFlight.departure_time || 'Time to be confirmed'} · ${selectedFlight.duration || ''}`;
+        meta.textContent = `${selectedFlight.flight_date} · ${selectedFlight.departure_time} · ${selectedFlight.duration} · Admin-managed demo schedule`;
         summary.replaceChildren(airline, route, meta);
-        document.getElementById('summary-base').textContent = formatMoney(selectedFlight.price);
-        document.getElementById('summary-total').textContent = formatMoney(selectedFlight.price);
-        document.getElementById('summary-passenger').textContent = user.name || 'Passenger';
+        const total = Number(selectedFlight.price) * passengerCount;
+        document.getElementById('summary-base').textContent = `${formatMoney(selectedFlight.price)} × ${passengerCount}`;
+        document.getElementById('summary-total').textContent = formatMoney(total);
+        document.getElementById('summary-passenger').textContent = `${passengerCount} seat${passengerCount === 1 ? '' : 's'} · ${user.name || 'Passenger'}`;
+        document.getElementById('passenger-count-note').textContent =
+          `Enter the lead passenger details for your ${passengerCount}-seat reservation.`;
       } catch (error) {
         displayMessage(error.message || 'Unable to load the selected flight.');
       }
@@ -217,10 +231,12 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
             'Authorization': `Bearer ${getToken()}`
           },
           body: JSON.stringify({
             flight_id: selectedFlight.id,
+            passenger_count: passengerCount,
             passenger_name: document.getElementById('passenger-name').value.trim(),
             passenger_phone: document.getElementById('passenger-phone').value.trim(),
             passenger_age: document.getElementById('passenger-age').value

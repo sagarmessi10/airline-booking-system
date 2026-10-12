@@ -15,7 +15,7 @@ if (fs.existsSync(envFile)) {
 module.exports = {
   port: Number(process.env.PORT) || 5000,
   jwtSecret: process.env.JWT_SECRET || "aeronepal_secret_key_2026",
-  adminEmail: (process.env.ADMIN_EMAIL || "admin@gmail.com").toLowerCase(),
+  adminEmail: (process.env.ADMIN_EMAIL || "sagarmishra761271@gmail.com").toLowerCase(),
   db: {
     host: process.env.DB_HOST || "127.0.0.1",
     user: process.env.DB_USER || "root",
@@ -28,6 +28,9 @@ module.exports = {
     environment: (process.env.ESEWA_ENVIRONMENT || "uat").toLowerCase(),
     productCode: process.env.ESEWA_PRODUCT_CODE || "EPAYTEST",
     secretKey: process.env.ESEWA_SECRET_KEY || "",
+  },
+  aviationstack: {
+    apiKey: process.env.AVIATIONSTACK_API_KEY || "",
   },
   appBaseUrl: (process.env.APP_BASE_URL || "http://localhost:8080").replace(/\/+$/, ""),
   apiBaseUrl: (process.env.API_BASE_URL || `http://localhost:${Number(process.env.PORT) || 5000}`).replace(/\/+$/, ""),

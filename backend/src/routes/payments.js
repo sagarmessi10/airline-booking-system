@@ -69,7 +69,11 @@ function getCallbackPayment(transactionUuid) {
 
 function updateVerification(paymentId, result, terminalStatus) {
   return db.transaction(async (tx) => {
-    const [payments] = await tx.query("SELECT id, booking_id, status FROM payments WHERE id = ?", [paymentId]);
+    const [payments] = await tx.query(
+      `SELECT p.id, p.booking_id, p.status, b.flight_id, b.passenger_count, b.status AS booking_status
+       FROM payments p JOIN bookings b ON b.id = p.booking_id WHERE p.id = ? FOR UPDATE`,
+      [paymentId]
+    );
     const payment = payments[0];
     if (!payment || payment.status === "PAID") return payment;
 
@@ -79,8 +83,14 @@ function updateVerification(paymentId, result, terminalStatus) {
         [result.providerReference, result.verificationResult, paymentId]
       );
       if (updated.affectedRows === 1) {
+        const [inventory] = await tx.query(
+          `UPDATE flights SET seats_reserved = seats_reserved - ?,
+           seats_booked = seats_booked + ? WHERE id = ? AND seats_reserved >= ?`,
+          [payment.passenger_count, payment.passenger_count, payment.flight_id, payment.passenger_count]
+        );
+        if (inventory.affectedRows !== 1) throw new Error("Reserved domestic seat inventory is inconsistent.");
         await tx.query(
-          "UPDATE bookings SET status = 'CONFIRMED', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          "UPDATE bookings SET status = 'CONFIRMED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'PENDING'",
           [payment.booking_id]
         );
       }
@@ -90,10 +100,17 @@ function updateVerification(paymentId, result, terminalStatus) {
         [result.verificationResult, paymentId]
       );
       if (updated.affectedRows === 1) {
-        await tx.query(
+        const [bookingUpdate] = await tx.query(
           "UPDATE bookings SET status = 'PAYMENT_FAILED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status <> 'CONFIRMED'",
           [payment.booking_id]
         );
+        if (bookingUpdate.affectedRows === 1 && payment.booking_status === "PENDING") {
+          const [inventory] = await tx.query(
+            "UPDATE flights SET seats_reserved = seats_reserved - ? WHERE id = ? AND seats_reserved >= ?",
+            [payment.passenger_count, payment.flight_id, payment.passenger_count]
+          );
+          if (inventory.affectedRows !== 1) throw new Error("Reserved domestic seat inventory is inconsistent.");
+        }
       }
     } else {
       await tx.query(
@@ -236,13 +253,18 @@ router.get("/:bookingId", authenticateToken, (req, res) => {
   const bookingId = toId(req.params.bookingId);
   if (bookingId === null) return res.status(400).json({ message: "Invalid booking ID." });
   const sql = `
-    SELECT b.id AS booking_id, b.booking_reference, b.passenger_name, b.passenger_phone,
-           b.passenger_age, b.amount, b.currency, b.status AS booking_status, b.created_at,
-           f.flight_name, f.source, f.destination, f.departure_time, f.duration,
+    SELECT b.id AS booking_id, b.booking_reference, b.flight_id, b.passenger_name, b.passenger_phone,
+           b.passenger_age, b.passenger_count, b.amount, b.currency, b.status AS booking_status, b.created_at,
+           f.flight_name, f.departure_time, f.duration, f.flight_date,
+           r.origin_iata AS source, origin.city AS source_name,
+           r.destination_iata AS destination, destination.city AS destination_name,
            p.id AS payment_id, p.transaction_uuid, p.provider, p.status AS payment_status,
            p.provider_reference, p.verification_result, p.created_at AS payment_created_at
     FROM bookings b
     JOIN flights f ON f.id = b.flight_id
+    LEFT JOIN domestic_routes r ON r.id = f.route_id
+    LEFT JOIN domestic_airports origin ON origin.iata = r.origin_iata
+    LEFT JOIN domestic_airports destination ON destination.iata = r.destination_iata
     LEFT JOIN payments p ON p.id = (
       SELECT MAX(p2.id) FROM payments p2 WHERE p2.booking_id = b.id
     )
@@ -287,13 +309,20 @@ router.post("/:bookingId/retry", authenticateToken, async (req, res) => {
   try {
     const payment = await db.transaction(async (tx) => {
       const [bookings] = await tx.query(
-        "SELECT id, user_id, amount, currency, status FROM bookings WHERE id = ? FOR UPDATE",
+        "SELECT id, user_id, flight_id, passenger_count, amount, currency, status FROM bookings WHERE id = ? FOR UPDATE",
         [bookingId]
       );
       const booking = bookings[0];
       if (!booking || Number(booking.user_id) !== Number(req.user.id)) return { error: "not_found" };
       if (booking.status !== "PAYMENT_FAILED") return { error: "not_retryable" };
 
+      const [reserved] = await tx.query(
+        `UPDATE flights SET seats_reserved = seats_reserved + ?
+         WHERE id = ? AND flight_date >= CURDATE()
+           AND seat_capacity - seats_reserved - seats_booked >= ?`,
+        [booking.passenger_count, booking.flight_id, booking.passenger_count]
+      );
+      if (reserved.affectedRows !== 1) return { error: "sold_out" };
       const transactionUuid = createTransactionUuid();
       const [created] = await tx.query(
         "INSERT INTO payments (booking_id, transaction_uuid, provider, amount, currency, status, verification_result) VALUES (?, ?, 'esewa', ?, ?, 'PENDING', 'AWAITING_PAYMENT')",
@@ -306,6 +335,9 @@ router.post("/:bookingId/retry", authenticateToken, async (req, res) => {
     if (payment.error === "not_found") return res.status(404).json({ message: "Booking not found." });
     if (payment.error === "not_retryable") {
       return res.status(409).json({ message: "Only failed eSewa payments can be retried." });
+    }
+    if (payment.error === "sold_out") {
+      return res.status(409).json({ message: "Seats are no longer available for this schedule; contact support before retrying payment." });
     }
     res.json({
       message: "Payment initialized.",

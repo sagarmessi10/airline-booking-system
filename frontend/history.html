@@ -208,6 +208,9 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       })[char]);
     }
+    function formatAirport(city, code) {
+      return city && code ? `${city} (${code})` : city || code || '—';
+    }
     function paymentLabel(booking) {
       if (booking.booking_status === 'CONFIRMED' && booking.payment_status === 'PAID') return { label: '✓ Confirmed · Paid', className: 'badge-confirmed' };
       if (booking.payment_status === 'FAILED') return { label: 'Payment failed', className: 'badge-failed' };
@@ -269,18 +272,19 @@
               <div class="entry-left">
                 <div class="entry-flight-name">
                   ${escapeHtml(b.flight_name)}
-                  <small>${escapeHtml(b.departure_time || 'Scheduled')}</small>
+                  <small>${escapeHtml(b.flight_date || '')} · ${escapeHtml(b.departure_time || 'Scheduled')}</small>
                 </div>
                 <div class="entry-route">
-                  <span class="entry-city">${escapeHtml(b.source)}</span>
+                  <span class="entry-city">${escapeHtml(formatAirport(b.source_name, b.source))}</span>
                   <span class="entry-arrow">→</span>
-                  <span class="entry-city">${escapeHtml(b.destination)}</span>
+                  <span class="entry-city">${escapeHtml(formatAirport(b.destination_name, b.destination))}</span>
                 </div>
               </div>
               <div class="entry-right">
                 <div>
                   <div class="entry-flight-name">${escapeHtml(b.passenger_name || '')} · ${escapeHtml(b.booking_reference || '')}</div>
                   <div class="entry-price">${escapeHtml(b.currency || 'NPR')} ${escapeHtml(b.price)}</div>
+                  <div class="entry-date">${escapeHtml(b.passenger_count || 1)} seat(s)</div>
                   <div class="entry-date">Booked: ${date}</div>
                   <span class="${payment.className}">${payment.label}</span>
                 </div>
