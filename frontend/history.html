@@ -102,6 +102,17 @@
       border-radius: 100px;
       margin-top: 0.35rem;
     }
+    .badge-pending, .badge-failed, .badge-legacy {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      margin-top: 0.35rem;
+    }
+    .badge-pending { color: #92400e; background: #fef3c7; }
+    .badge-failed { color: #991b1b; background: #fee2e2; }
+    .badge-legacy { color: #4b5563; background: #e5e7eb; }
 
     .empty-state {
       text-align: center;
@@ -181,7 +192,7 @@
   </footer>
 
   <script>
-    const API = 'http://localhost:5000';
+    const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
 
     function getToken() { return localStorage.getItem('aeronepal_token'); }
     function getUser()  {
@@ -191,6 +202,17 @@
       localStorage.removeItem('aeronepal_token');
       localStorage.removeItem('aeronepal_user');
       window.location.href = 'index.html';
+    }
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+    function paymentLabel(booking) {
+      if (booking.booking_status === 'CONFIRMED' && booking.payment_status === 'PAID') return { label: '✓ Confirmed · Paid', className: 'badge-confirmed' };
+      if (booking.payment_status === 'FAILED') return { label: 'Payment failed', className: 'badge-failed' };
+      if (booking.payment_status === 'PENDING') return { label: 'Payment pending', className: 'badge-pending' };
+      return { label: 'Unverified legacy booking', className: 'badge-legacy' };
     }
 
     window.onload = async () => {
@@ -241,24 +263,26 @@
           const date = b.created_at
             ? new Date(b.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
             : '—';
+          const payment = paymentLabel(b);
           return `
             <div class="booking-entry">
               <div class="entry-left">
                 <div class="entry-flight-name">
-                  ${b.flight_name}
-                  <small>${b.departure_time || 'Scheduled'}</small>
+                  ${escapeHtml(b.flight_name)}
+                  <small>${escapeHtml(b.departure_time || 'Scheduled')}</small>
                 </div>
                 <div class="entry-route">
-                  <span class="entry-city">${b.source}</span>
+                  <span class="entry-city">${escapeHtml(b.source)}</span>
                   <span class="entry-arrow">→</span>
-                  <span class="entry-city">${b.destination}</span>
+                  <span class="entry-city">${escapeHtml(b.destination)}</span>
                 </div>
               </div>
               <div class="entry-right">
                 <div>
-                  <div class="entry-price">NPR ${b.price}</div>
+                  <div class="entry-flight-name">${escapeHtml(b.passenger_name || '')} · ${escapeHtml(b.booking_reference || '')}</div>
+                  <div class="entry-price">${escapeHtml(b.currency || 'NPR')} ${escapeHtml(b.price)}</div>
                   <div class="entry-date">Booked: ${date}</div>
-                  <span class="badge-confirmed">✓ Confirmed</span>
+                  <span class="${payment.className}">${payment.label}</span>
                 </div>
               </div>
             </div>

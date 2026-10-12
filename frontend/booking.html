@@ -4,240 +4,261 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AeroNepal | Confirm Booking</title>
+  <title>AeroNepal | eSewa Checkout</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-
-  <!-- Navigation -->
   <nav class="navbar">
-    <a href="index.html" class="nav-brand">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path
-          d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 3.5L7 15l-3-1.5-2.5 1 4.5 4.5c.5.5 1.5.5 2 0L9 17l3.5 6 1.2-.7-.4-5.1 4.5-4.5c1.5-1.5 2-3.5 1.5-4.5-1-.5-3 0-4.5 1.5z" />
-      </svg>
-      AeroNepal
-    </a>
+    <a href="index.html" class="nav-brand">✈ AeroNepal</a>
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
       <li><a href="history.html">Booking History</a></li>
       <li><a href="support.html">Support</a></li>
-      <li id="auth-nav" style="margin-left: 1rem; display: flex; align-items: center; gap: 0.75rem;"></li>
+      <li id="auth-nav"></li>
     </ul>
   </nav>
 
-  <!-- Centered Booking Form -->
-  <div class="booking-container">
-    <div class="booking-card">
-      <h1>Payment Details</h1>
-      <p style="text-align: center; color: var(--text-light); margin-bottom: 2rem;">Secure checkout to confirm your
-        flight.</p>
+  <main class="checkout-container">
+    <header class="checkout-header">
+      <p class="checkout-eyebrow">SECURE CHECKOUT · eSEWA UAT</p>
+      <h1>Complete your booking</h1>
+      <p>Your fare is confirmed after eSewa verifies the test transaction.</p>
+    </header>
 
-      <div id="booking-msg"
-        style="text-align:center; margin-bottom:1rem; color:var(--primary); display:none; padding:0.5rem; border-radius:4px; background:rgba(229,46,45,0.1);">
-      </div>
-
-      <div class="booking-form">
-        <div class="input-group">
-          <label for="user">Booked As</label>
-          <input type="text" id="user" class="input-control" placeholder="Loading user..." readonly
-            style="background-color:#f3f4f6; cursor:not-allowed; opacity:0.8;">
-        </div>
-
-        <div class="input-group">
-          <label for="phone">Phone Number</label>
-          <input type="tel" id="phone" class="input-control" placeholder="+977-9800000000">
-        </div>
-
-        <div class="input-group">
-          <label for="age">Age</label>
-          <input type="number" id="age" class="input-control" placeholder="25" min="1">
-        </div>
-
-        <div class="input-group">
-          <label for="cardname">Card Holder Name</label>
-          <input type="text" id="cardname" class="input-control" placeholder="John Doe">
-        </div>
-
-        <div class="input-group">
-          <label for="cardnumber">Card Number</label>
-          <input type="text" id="cardnumber" class="input-control" placeholder="0000 0000 0000 0000" maxlength="19">
-        </div>
-
-        <div class="grid-2">
+    <div class="checkout-layout">
+      <section class="checkout-card">
+        <h2>Passenger information</h2>
+        <p class="checkout-muted">Enter the details for the passenger travelling.</p>
+        <div id="booking-msg" class="checkout-message" role="alert" hidden></div>
+        <form id="passenger-form" class="checkout-form">
           <div class="input-group">
-            <label for="expiry">Expiry Date</label>
-            <input type="text" id="expiry" class="input-control" placeholder="MM/YY" maxlength="5">
+            <label for="passenger-name">Passenger full name</label>
+            <input id="passenger-name" class="input-control" autocomplete="name" required maxlength="100">
           </div>
-          <div class="input-group">
-            <label for="cvv">CVV</label>
-            <input type="password" id="cvv" class="input-control" placeholder="•••" maxlength="4">
+          <div class="grid-2">
+            <div class="input-group">
+              <label for="passenger-phone">Phone number</label>
+              <input id="passenger-phone" class="input-control" type="tel" inputmode="numeric" autocomplete="tel-national" required pattern="(?:98|97)[0-9]{8,13}" maxlength="15" title="Use 10 to 15 digits only, starting with 98 or 97." placeholder="98XXXXXXXX">
+            </div>
+            <div class="input-group">
+              <label for="passenger-age">Age</label>
+              <input id="passenger-age" class="input-control" type="number" min="19" max="120" required>
+            </div>
           </div>
-        </div>
 
-        <button onclick="bookFlight()" id="confirmBtn" class="btn btn-success booking-btn">
-          Confirm Booking <span class="spinner" id="spinner"></span>
-        </button>
-      </div>
+          <div class="payment-method">
+            <div class="payment-method-brand">
+              <img src="assets/esewa-logo.svg" alt="eSewa">
+              <div>
+                <strong>eSewa</strong>
+                <span>Test / Sandbox payment</span>
+              </div>
+            </div>
+            <span class="payment-method-selected">Selected</span>
+            <p>You'll be redirected to eSewa's official UAT checkout. No card information is collected by AeroNepal.</p>
+          </div>
+          <button id="confirmBtn" class="btn btn-success booking-btn" type="submit">
+            <span id="button-label">Pay with eSewa</span><span class="spinner" id="spinner" aria-hidden="true"></span>
+          </button>
+          <p class="checkout-safe-note">Payment is processed only on eSewa's test environment. Your booking remains pending until server-side verification succeeds.</p>
+        </form>
+      </section>
+
+      <aside class="checkout-card checkout-summary">
+        <h2>Your itinerary</h2>
+        <div id="flight-summary" class="itinerary-loading">Loading selected flight…</div>
+        <div class="summary-divider"></div>
+        <h3>Fare breakdown</h3>
+        <div class="summary-row"><span>Passenger</span><strong id="summary-passenger">—</strong></div>
+        <div class="summary-row"><span>Base fare</span><strong id="summary-base">—</strong></div>
+        <div class="summary-row"><span>Tax</span><strong>NPR 0.00</strong></div>
+        <div class="summary-row"><span>Service charge</span><strong>NPR 0.00</strong></div>
+        <div class="summary-total"><span>Total payable</span><strong id="summary-total">—</strong></div>
+        <p class="checkout-muted">Currency and fare are taken from the selected flight in the booking database.</p>
+      </aside>
     </div>
-  </div>
+  </main>
 
-  <footer>
-    <p>&copy; 2026 AeroNepal Airlines Simulator. All Rights Reserved.</p>
-  </footer>
+  <footer><p>&copy; 2026 AeroNepal Airlines Simulator. All Rights Reserved.</p></footer>
 
   <script>
-    const API = 'http://localhost:5000';
+    const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
+    const ESEWA_FORM_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
+    let selectedFlight = null;
 
     function getToken() { return localStorage.getItem('aeronepal_token'); }
     function getUser() {
       try { return JSON.parse(localStorage.getItem('aeronepal_user')); } catch { return null; }
+    }
+    function isGmailAddress(email) {
+      return typeof email === 'string' && /^[^\s@]+@gmail\.com$/i.test(email);
     }
     function logout() {
       localStorage.removeItem('aeronepal_token');
       localStorage.removeItem('aeronepal_user');
       window.location.href = 'index.html';
     }
+    function displayMessage(message) {
+      const box = document.getElementById('booking-msg');
+      box.textContent = message;
+      box.hidden = false;
+    }
+    function formatMoney(value) {
+      return `NPR ${Number(value).toFixed(2)}`;
+    }
 
-    window.onload = () => {
+    async function loadCheckout() {
       const token = getToken();
       const user = getUser();
-
-      // Redirect to login if not authenticated
       if (!token || !user) {
         window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
         return;
       }
+      if (!isGmailAddress(user.email)) {
+        localStorage.removeItem('aeronepal_token');
+        localStorage.removeItem('aeronepal_user');
+        const loginUrl = new URL('login.html', window.location.href);
+        loginUrl.searchParams.set('gmailRequired', '1');
+        loginUrl.searchParams.set('redirect', window.location.href);
+        window.location.href = loginUrl.toString();
+        return;
+      }
 
-      // Populate nav
       const nav = document.getElementById('auth-nav');
-      nav.innerHTML = `
-        <span style="font-size:0.9rem; color:var(--text-light);">Hi, <strong style="color:var(--text-dark);">${user.name}</strong></span>
-        <button onclick="logout()" class="btn btn-primary" style="padding:0.5rem 1rem; font-size:0.85rem;">Logout</button>
-      `;
+      const greeting = document.createElement('span');
+      greeting.className = 'checkout-user';
+      greeting.textContent = `Hi, ${user.name}`;
+      const logoutButton = document.createElement('button');
+      logoutButton.className = 'btn btn-primary checkout-logout';
+      logoutButton.textContent = 'Logout';
+      logoutButton.addEventListener('click', logout);
+      nav.replaceChildren(greeting, logoutButton);
+      document.getElementById('passenger-name').value = user.name || '';
 
-      // Pre-fill user email
-      document.getElementById('user').value = user.email;
-
-      // Format card number with spaces
-      document.getElementById('cardnumber').addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').substring(0, 16);
-        e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
-      });
-
-      // Format expiry with slash
-      document.getElementById('expiry').addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').substring(0, 4);
-        if (v.length >= 3) v = v.substring(0, 2) + '/' + v.substring(2);
-        e.target.value = v;
-      });
-    };
-
-    async function bookFlight() {
-      const btn = document.getElementById('confirmBtn');
-      const spinner = document.getElementById('spinner');
-      const msgBox = document.getElementById('booking-msg');
-
-      const params = new URLSearchParams(window.location.search);
-      let flight_id = params.get('flight') || localStorage.getItem('selected_flight_id');
-      if (flight_id === 'undefined' || flight_id === 'null') flight_id = null;
-
-      const phone = document.getElementById('phone').value.trim();
-      const age = document.getElementById('age').value.trim();
-      const card_holder = document.getElementById('cardname').value.trim();
-      const card_number = document.getElementById('cardnumber').value.trim();
-      const expiry = document.getElementById('expiry').value.trim();
-      const cvv = document.getElementById('cvv').value.trim();
-
-      if (!flight_id) {
-        msgBox.textContent = `No flight selected (Search: ${window.location.search || 'None'}). Please select a flight from the Home page first.`;
-        msgBox.style.display = 'block';
+      const flightId = new URLSearchParams(window.location.search).get('flight') || localStorage.getItem('selected_flight_id');
+      if (!flightId || !/^\d+$/.test(flightId)) {
+        displayMessage('No valid flight is selected. Return to the home page and choose a flight.');
         return;
       }
-
-      if (!phone || !age || !card_holder || !card_number || !expiry || !cvv) {
-        msgBox.textContent = 'Please fill in all payment details.';
-        msgBox.style.display = 'block';
-        return;
-      }
-
-      const nameRegex = /^[a-zA-Z\s]+$/;
-      if (!nameRegex.test(card_holder)) {
-        msgBox.textContent = 'Card holder name must contain only letters and spaces.';
-        msgBox.style.display = 'block';
-        return;
-      }
-
-      const cardDigits = card_number.replace(/\s/g, '');
-      if (cardDigits.length !== 16 || !/^\d+$/.test(cardDigits)) {
-        msgBox.textContent = 'Card number must be exactly 16 digits.';
-        msgBox.style.display = 'block';
-        return;
-      }
-
-      const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
-      if (!expiryRegex.test(expiry)) {
-        msgBox.textContent = 'Expiry date must be in MM/YY format with a valid month.';
-        msgBox.style.display = 'block';
-        return;
-      }
-
-      const [month, year] = expiry.split('/');
-      const now = new Date();
-      const currentYear = parseInt(now.getFullYear().toString().slice(-2), 10);
-      const currentMonth = now.getMonth() + 1;
-
-      if (parseInt(year, 10) < currentYear || (parseInt(year, 10) === currentYear && parseInt(month, 10) < currentMonth)) {
-        msgBox.textContent = 'Expiry date cannot be in the past.';
-        msgBox.style.display = 'block';
-        return;
-      }
-
-      const cvvRegex = /^\d{3,4}$/;
-      if (!cvvRegex.test(cvv)) {
-        msgBox.textContent = 'CVV must be 3 or 4 digits.';
-        msgBox.style.display = 'block';
-        return;
-      }
-
-      btn.disabled = true;
-      btn.style.opacity = '0.7';
-      spinner.style.display = 'inline-block';
-      msgBox.style.display = 'none';
 
       try {
-        const res = await fetch(`${API}/book`, {
+        const response = await fetch(`${API}/flights`);
+        if (!response.ok) throw new Error('Unable to load flights.');
+        const flights = await response.json();
+        selectedFlight = flights.find((flight) => String(flight.id) === flightId);
+        if (!selectedFlight) {
+          displayMessage('The selected flight is no longer available. Please choose another flight.');
+          return;
+        }
+        const summary = document.getElementById('flight-summary');
+        const airline = document.createElement('div');
+        airline.className = 'itinerary-airline';
+        airline.textContent = selectedFlight.flight_name;
+        const route = document.createElement('div');
+        route.className = 'itinerary-route';
+        const departure = document.createElement('div');
+        const departureCity = document.createElement('strong');
+        departureCity.textContent = selectedFlight.source;
+        const departureLabel = document.createElement('span');
+        departureLabel.textContent = 'Departure';
+        departure.append(departureCity, departureLabel);
+        const arrow = document.createElement('span');
+        arrow.className = 'itinerary-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.textContent = '→';
+        const arrival = document.createElement('div');
+        const arrivalCity = document.createElement('strong');
+        arrivalCity.textContent = selectedFlight.destination;
+        const arrivalLabel = document.createElement('span');
+        arrivalLabel.textContent = 'Arrival';
+        arrival.append(arrivalCity, arrivalLabel);
+        route.append(departure, arrow, arrival);
+        const meta = document.createElement('div');
+        meta.className = 'itinerary-meta';
+        meta.textContent = `${selectedFlight.departure_time || 'Time to be confirmed'} · ${selectedFlight.duration || ''}`;
+        summary.replaceChildren(airline, route, meta);
+        document.getElementById('summary-base').textContent = formatMoney(selectedFlight.price);
+        document.getElementById('summary-total').textContent = formatMoney(selectedFlight.price);
+        document.getElementById('summary-passenger').textContent = user.name || 'Passenger';
+      } catch (error) {
+        displayMessage(error.message || 'Unable to load the selected flight.');
+      }
+    }
+
+    document.getElementById('passenger-name').addEventListener('input', (event) => {
+      document.getElementById('summary-passenger').textContent = event.target.value || '—';
+    });
+
+    document.getElementById('passenger-phone').addEventListener('input', (event) => {
+      event.target.setCustomValidity(
+        event.target.value && !/^(?:98|97)\d{8,}$/.test(event.target.value)
+          ? 'Phone number must contain only 10 to 15 digits and start with 98 or 97.'
+          : ''
+      );
+    });
+
+    document.getElementById('passenger-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!selectedFlight) {
+        displayMessage('A valid flight must be selected before payment.');
+        return;
+      }
+      const button = document.getElementById('confirmBtn');
+      const spinner = document.getElementById('spinner');
+      const label = document.getElementById('button-label');
+      button.disabled = true;
+      spinner.style.display = 'inline-block';
+      label.textContent = 'Initializing secure payment…';
+      document.getElementById('booking-msg').hidden = true;
+
+      try {
+        const response = await fetch(`${API}/book`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${getToken()}`
           },
-          body: JSON.stringify({ flight_id, card_number, card_holder, expiry })
+          body: JSON.stringify({
+            flight_id: selectedFlight.id,
+            passenger_name: document.getElementById('passenger-name').value.trim(),
+            passenger_phone: document.getElementById('passenger-phone').value.trim(),
+            passenger_age: document.getElementById('passenger-age').value
+          })
         });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Booking failed.');
+        const payment = await response.json();
+        if (!response.ok) {
+          const message = payment.message === 'Incomplete booking details.'
+            ? 'The booking server is still running the old checkout code. Restart the backend from the backend folder (npm run dev), then reload this page.'
+            : payment.message || 'Payment could not be initialized.';
+          throw new Error(message);
+        }
+        if (payment.formUrl !== ESEWA_FORM_URL || !payment.fields || typeof payment.fields !== 'object') {
+          throw new Error('The server returned an unexpected payment destination.');
         }
 
-        // Success
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = ESEWA_FORM_URL;
+        Object.entries(payment.fields).forEach(([name, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = String(value);
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        label.textContent = 'Redirecting to eSewa UAT…';
+        form.submit();
+      } catch (error) {
+        button.disabled = false;
         spinner.style.display = 'none';
-        btn.innerHTML = 'Booking Confirmed! ✓';
-        btn.style.backgroundColor = '#10B981';
-
-        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
-
-      } catch (e) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        spinner.style.display = 'none';
-        msgBox.textContent = e.message || 'Failed to connect to the booking server. Please try again.';
-        msgBox.style.display = 'block';
+        label.textContent = 'Pay with eSewa';
+        displayMessage(error.message || 'Payment initialization failed. Please try again.');
       }
-    }
+    });
+
+    window.addEventListener('DOMContentLoaded', loadCheckout);
   </script>
 </body>
-
 </html>

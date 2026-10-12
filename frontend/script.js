@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000";
+const API_URL = window.location.port === "8080" ? "http://localhost:5000" : window.location.origin;
 
 // Add flight
 document.getElementById("addFlightForm").addEventListener("submit", async (e) => {

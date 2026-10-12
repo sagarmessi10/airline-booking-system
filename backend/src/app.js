@@ -20,6 +20,7 @@ app.get("/health", (req, res) => {
 app.use(require("./routes/auth"));
 app.use(require("./routes/flights"));
 app.use(require("./routes/bookings"));
+app.use("/payments", require("./routes/payments").router);
 app.use("/admin", require("./routes/admin"));
 
 app.use(notFound);

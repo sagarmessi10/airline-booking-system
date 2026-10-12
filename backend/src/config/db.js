@@ -11,11 +11,42 @@ const db = {
     if (!pool) throw new Error("Database not initialised yet");
     return pool.query(...args);
   },
+  transaction,
   init,
 };
 
 const run = (conn, sql, params) =>
   new Promise((resolve, reject) => conn.query(sql, params, (e, rows) => (e ? reject(e) : resolve(rows))));
+
+async function transaction(work) {
+  if (!pool) throw new Error("Database not initialised yet");
+  const connection = await new Promise((resolve, reject) => {
+    pool.getConnection((error, conn) => (error ? reject(error) : resolve(conn)));
+  });
+  let started = false;
+  const tx = {
+    query(sql, params = []) {
+      return new Promise((resolve, reject) => {
+        connection.query(sql, params, (error, rows) => (error ? reject(error) : resolve([rows])));
+      });
+    },
+  };
+
+  try {
+    await new Promise((resolve, reject) => connection.beginTransaction((error) => (error ? reject(error) : resolve())));
+    started = true;
+    const result = await work(tx);
+    await new Promise((resolve, reject) => connection.commit((error) => (error ? reject(error) : resolve())));
+    return result;
+  } catch (error) {
+    if (started) {
+      await new Promise((resolve) => connection.rollback(() => resolve()));
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
 
 function rawConnect(port) {
   return new Promise((resolve, reject) => {
@@ -68,6 +99,30 @@ async function init() {
   };
   await addColumn("flights", "duration", "VARCHAR(20) NOT NULL DEFAULT '1h 15m'");
   await addColumn("bookings", "created_at", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+  await addColumn("bookings", "booking_reference", "VARCHAR(40) NULL");
+  await addColumn("bookings", "passenger_name", "VARCHAR(100) NULL");
+  await addColumn("bookings", "passenger_phone", "VARCHAR(30) NULL");
+  await addColumn("bookings", "passenger_age", "SMALLINT NULL");
+  await addColumn("bookings", "amount", "DECIMAL(10,2) NOT NULL DEFAULT 0");
+  await addColumn("bookings", "currency", "CHAR(3) NOT NULL DEFAULT 'NPR'");
+  await addColumn("bookings", "status", "VARCHAR(30) NOT NULL DEFAULT 'LEGACY'");
+  await addColumn("bookings", "updated_at", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+  const bookingColumns = await q("SHOW COLUMNS FROM bookings");
+  const bookingColumnNames = new Set(bookingColumns.map((column) => column.Field));
+  if (bookingColumnNames.has("card_holder")) {
+    await q("UPDATE bookings SET passenger_name = card_holder WHERE passenger_name IS NULL");
+  }
+  await q("UPDATE bookings b JOIN flights f ON f.id = b.flight_id SET b.amount = f.price WHERE b.amount = 0");
+  await q("UPDATE bookings SET booking_reference = CONCAT('AN-LEGACY-', LPAD(id, 8, '0')) WHERE booking_reference IS NULL");
+  if (bookingColumnNames.has("card_number")) await q("ALTER TABLE bookings DROP COLUMN card_number");
+  if (bookingColumnNames.has("card_holder")) await q("ALTER TABLE bookings DROP COLUMN card_holder");
+  if (bookingColumnNames.has("expiry")) await q("ALTER TABLE bookings DROP COLUMN expiry");
+  const bookingIndexes = await q("SHOW INDEX FROM bookings WHERE Key_name = 'uq_bookings_reference'");
+  if (bookingIndexes.length === 0) {
+    await q("ALTER TABLE bookings ADD UNIQUE KEY uq_bookings_reference (booking_reference)");
+  }
+  await addColumn("payments", "callback_signature_valid", "BOOLEAN NOT NULL DEFAULT FALSE");
   await addColumn("user", "role", "VARCHAR(10) NOT NULL DEFAULT 'user'");
 
   // 5. seed data (data/flights.json) on first run

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroNepal | Payment status</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">✈ AeroNepal</a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="history.html">Booking History</a></li>
+      <li><a href="support.html">Support</a></li>
+    </ul>
+  </nav>
+  <main class="payment-result-wrap">
+    <section class="payment-result-card" aria-live="polite">
+      <div id="result-icon" class="payment-result-icon" aria-hidden="true">…</div>
+      <p class="checkout-eyebrow">ESEWA TEST PAYMENT</p>
+      <h1 id="result-title">Checking payment status…</h1>
+      <p id="result-message">AeroNepal is verifying this transaction with eSewa.</p>
+      <dl id="result-details" class="result-details" hidden></dl>
+      <div id="result-actions" class="result-actions"></div>
+    </section>
+  </main>
+  <script>
+    const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
+    const ESEWA_FORM_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
+    const query = new URLSearchParams(window.location.search);
+    const bookingId = query.get('bookingId');
+
+    function setMessage(icon, title, message) {
+      document.getElementById('result-icon').textContent = icon;
+      document.getElementById('result-title').textContent = title;
+      document.getElementById('result-message').textContent = message;
+    }
+
+    function addAction(label, href, className) {
+      const link = document.createElement('a');
+      link.className = className || 'btn btn-primary';
+      link.href = href;
+      link.textContent = label;
+      document.getElementById('result-actions').appendChild(link);
+      return link;
+    }
+
+    async function loadPayment() {
+      if (!/^\d+$/.test(bookingId || '') || !localStorage.getItem('aeronepal_token')) {
+        setMessage('!', 'Payment status unavailable', 'Sign in to view your booking status, or return to your booking history.');
+        addAction('Booking history', 'history.html', 'btn btn-primary');
+        return;
+      }
+      try {
+        const response = await fetch(`${API}/payments/${encodeURIComponent(bookingId)}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('aeronepal_token')}` }
+        });
+        const booking = await response.json();
+        if (!response.ok) throw new Error(booking.message || 'Unable to retrieve booking.');
+
+        if (booking.payment_status === 'PAID' && booking.booking_status === 'CONFIRMED') {
+          setMessage('✓', 'Payment verified — booking confirmed', 'eSewa and AeroNepal have verified your test payment.');
+          const details = document.getElementById('result-details');
+          details.hidden = false;
+          [
+            ['Booking reference', booking.booking_reference],
+            ['Payment reference', booking.provider_reference || 'Recorded by eSewa'],
+            ['Flight', `${booking.flight_name}: ${booking.source} to ${booking.destination}`],
+            ['Passenger', booking.passenger_name],
+            ['Amount paid', `${booking.currency} ${Number(booking.amount).toFixed(2)}`]
+          ].forEach(([label, value]) => {
+            const term = document.createElement('dt');
+            const description = document.createElement('dd');
+            term.textContent = label;
+            description.textContent = value || '—';
+            details.append(term, description);
+          });
+          addAction('View booking history', 'history.html', 'btn btn-success');
+          return;
+        }
+
+        if (booking.payment_status === 'FAILED') {
+          const cancelled = booking.verification_result === 'CANCELED';
+          setMessage('×', cancelled ? 'Payment cancelled' : 'Payment not completed',
+            cancelled ? 'The eSewa UAT transaction was cancelled. No booking has been confirmed.' :
+              'eSewa did not complete this test payment. Your booking is not confirmed.');
+          const retry = document.createElement('button');
+          retry.className = 'btn btn-primary';
+          retry.textContent = 'Retry with eSewa';
+          retry.addEventListener('click', () => retryPayment());
+          document.getElementById('result-actions').appendChild(retry);
+          addAction('Booking history', 'history.html', 'btn btn-secondary');
+          return;
+        }
+
+        if (booking.verification_result === 'INVALID_SIGNATURE' ||
+            booking.verification_result === 'CALLBACK_MISMATCH' ||
+            booking.verification_result === 'STATUS_MISMATCH' ||
+            booking.verification_result === 'SIGNED_RESPONSE_REQUIRED' ||
+            booking.verification_result === 'INVALID_RESPONSE') {
+          setMessage('!', 'Payment could not be verified', 'The signed response did not match this booking. The booking remains unpaid.');
+          const check = document.createElement('button');
+          check.className = 'btn btn-primary';
+          check.textContent = 'Check payment status again';
+          check.addEventListener('click', () => verifyPayment());
+          document.getElementById('result-actions').appendChild(check);
+        } else {
+          setMessage('…', 'Payment is still pending', 'We have not yet received a verified completion from eSewa. You can safely check again; do not pay twice.');
+          const check = document.createElement('button');
+          check.className = 'btn btn-primary';
+          check.textContent = 'Check payment status';
+          check.addEventListener('click', () => verifyPayment());
+          document.getElementById('result-actions').appendChild(check);
+        }
+        addAction('Booking history', 'history.html', 'btn btn-secondary');
+      } catch (error) {
+        setMessage('!', 'Unable to check payment', error.message || 'Please check again later.');
+        addAction('Try again', `payment-result.html?bookingId=${encodeURIComponent(bookingId)}`, 'btn btn-primary');
+      }
+    }
+
+    async function verifyPayment() {
+      const actions = document.getElementById('result-actions');
+      actions.replaceChildren();
+      setMessage('…', 'Checking with eSewa…', 'Your booking will only be confirmed after the server verifies the transaction.');
+      try {
+        const response = await fetch(`${API}/payments/${encodeURIComponent(bookingId)}/verify`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('aeronepal_token')}` }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Unable to verify payment.');
+        await loadPayment();
+      } catch (error) {
+        setMessage('!', 'Verification is temporarily unavailable', error.message || 'Please try again shortly.');
+        const check = document.createElement('button');
+        check.className = 'btn btn-primary';
+        check.textContent = 'Try verification again';
+        check.addEventListener('click', () => verifyPayment());
+        actions.appendChild(check);
+      }
+    }
+
+    async function retryPayment() {
+      const actions = document.getElementById('result-actions');
+      actions.replaceChildren();
+      setMessage('…', 'Preparing a new payment attempt…', 'Your booking will remain unconfirmed until this attempt is verified.');
+      try {
+        const response = await fetch(`${API}/payments/${encodeURIComponent(bookingId)}/retry`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('aeronepal_token')}` }
+        });
+        const payment = await response.json();
+        if (!response.ok) throw new Error(payment.message || 'Unable to retry payment.');
+        if (payment.formUrl !== ESEWA_FORM_URL) throw new Error('Unexpected eSewa payment destination.');
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = ESEWA_FORM_URL;
+        Object.entries(payment.fields).forEach(([name, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = String(value);
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+      } catch (error) {
+        setMessage('!', 'Unable to retry payment', error.message || 'Please try again.');
+        const retry = document.createElement('button');
+        retry.className = 'btn btn-primary';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', () => retryPayment());
+        actions.appendChild(retry);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadPayment);
+  </script>
+</body>
+</html>

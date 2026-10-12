@@ -24,5 +24,12 @@ module.exports = {
     // unset -> try 3306 then 3307
     ports: process.env.DB_PORT ? [Number(process.env.DB_PORT)] : [3306, 3307],
   },
+  esewa: {
+    environment: (process.env.ESEWA_ENVIRONMENT || "uat").toLowerCase(),
+    productCode: process.env.ESEWA_PRODUCT_CODE || "EPAYTEST",
+    secretKey: process.env.ESEWA_SECRET_KEY || "",
+  },
+  appBaseUrl: (process.env.APP_BASE_URL || "http://localhost:8080").replace(/\/+$/, ""),
+  apiBaseUrl: (process.env.API_BASE_URL || `http://localhost:${Number(process.env.PORT) || 5000}`).replace(/\/+$/, ""),
   dataDir: path.join(__dirname, "..", "..", "data"),
 };

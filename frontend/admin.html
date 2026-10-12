@@ -251,6 +251,9 @@
     .badge-admin { background: var(--danger-bg); color: var(--danger); }
     .badge-user { background: var(--info-bg); color: var(--info); }
     .badge-confirmed { background: var(--success-bg); color: var(--success); }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-failed { background: #fee2e2; color: #991b1b; }
+    .badge-legacy { background: #e5e7eb; color: #4b5563; }
 
     /* ── Action Buttons ── */
     .btn-sm {
@@ -518,7 +521,7 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const API = 'http://localhost:5000';
+    const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
 
     function getToken() { return localStorage.getItem('aeronepal_token'); }
     function getUser()  {
@@ -530,6 +533,21 @@
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getToken()}`
       };
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    function bookingStatusBadge(booking) {
+      const status = booking.payment_status === 'PAID' && booking.booking_status === 'CONFIRMED'
+        ? { label: 'Paid / confirmed', className: 'badge-confirmed' }
+        : booking.payment_status === 'FAILED' ? { label: 'Payment failed', className: 'badge-failed' }
+        : booking.payment_status === 'PENDING' ? { label: 'Payment pending', className: 'badge-pending' }
+        : { label: 'Unverified legacy', className: 'badge-legacy' };
+      return `<span class="badge ${status.className}">${status.label}</span>`;
     }
 
     function showToast(msg) {
@@ -591,11 +609,11 @@
         body.innerHTML = data.slice(0, 5).map(b => `
           <tr>
             <td>#${b.booking_id}</td>
-            <td>${b.user_name}</td>
-            <td>${b.flight_name}</td>
-            <td>${b.source} → ${b.destination}</td>
-            <td>NPR ${b.price}</td>
-            <td><span class="badge badge-confirmed">Confirmed</span></td>
+            <td>${escapeHtml(b.passenger_name || b.user_name)}</td>
+            <td>${escapeHtml(b.flight_name)}</td>
+            <td>${escapeHtml(b.source)} → ${escapeHtml(b.destination)}</td>
+            <td>${escapeHtml(b.currency || 'NPR')} ${escapeHtml(b.price)}</td>
+            <td>${bookingStatusBadge(b)}</td>
           </tr>
         `).join('');
       } catch { }
@@ -715,12 +733,12 @@
         body.innerHTML = data.map(b => `
           <tr>
             <td>#${b.booking_id}</td>
-            <td>${b.user_name}</td>
-            <td>${b.user_email}</td>
-            <td>${b.flight_name}</td>
-            <td>${b.source} → ${b.destination}</td>
-            <td style="font-weight:600;">NPR ${b.price}</td>
-            <td><span class="badge badge-confirmed">Confirmed</span></td>
+            <td>${escapeHtml(b.passenger_name || b.user_name)}</td>
+            <td>${escapeHtml(b.user_email)}</td>
+            <td>${escapeHtml(b.flight_name)}</td>
+            <td>${escapeHtml(b.source)} → ${escapeHtml(b.destination)}</td>
+            <td style="font-weight:600;">${escapeHtml(b.currency || 'NPR')} ${escapeHtml(b.price)}</td>
+            <td>${bookingStatusBadge(b)}</td>
           </tr>
         `).join('');
       } catch { }

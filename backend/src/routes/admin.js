@@ -50,12 +50,16 @@ router.put("/users/:id/role", (req, res) => {
 // GET /admin/bookings
 router.get("/bookings", (req, res) => {
   const sql = `
-    SELECT b.id AS booking_id, b.card_holder, b.created_at,
+    SELECT b.id AS booking_id, b.booking_reference, b.passenger_name, b.amount AS price,
+           b.currency, b.status AS booking_status, p.status AS payment_status, b.created_at,
            u.name AS user_name, u.email AS user_email,
-           f.flight_name, f.source, f.destination, f.departure_time, f.price
+           f.flight_name, f.source, f.destination, f.departure_time
     FROM bookings b
     JOIN user u ON b.user_id = u.id
     JOIN flights f ON b.flight_id = f.id
+    LEFT JOIN payments p ON p.id = (
+      SELECT MAX(p2.id) FROM payments p2 WHERE p2.booking_id = b.id
+    )
     ORDER BY b.id DESC
   `;
   db.query(sql, (err, results) => {

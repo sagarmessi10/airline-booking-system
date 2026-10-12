@@ -1,4 +1,4 @@
-const isValidEmail = (e) => typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const isValidEmail = (e) => typeof e === "string" && /^[^\s@]+@gmail\.com$/i.test(e);
 const toId = (v) => (/^\d+$/.test(String(v)) ? Number(v) : null);
 
 function validateFlight(body) {

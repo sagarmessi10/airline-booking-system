@@ -389,7 +389,7 @@
         <label for="login-email">Email Address</label>
         <div class="input-wrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <input type="email" id="login-email" class="form-input" placeholder="you@example.com" autocomplete="email">
+          <input type="email" id="login-email" class="form-input" placeholder="you@gmail.com" autocomplete="email">
         </div>
       </div>
 
@@ -433,7 +433,7 @@
         <label for="reg-email">Email Address</label>
         <div class="input-wrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <input type="email" id="reg-email" class="form-input" placeholder="you@example.com" autocomplete="email">
+          <input type="email" id="reg-email" class="form-input" placeholder="you@gmail.com" autocomplete="email">
         </div>
       </div>
 
@@ -469,7 +469,7 @@
   </div>
 
   <script>
-    const API = 'http://localhost:5000';
+    const API = window.location.port === '8080' ? 'http://localhost:5000' : window.location.origin;
 
     // If already logged in, go home
     if (localStorage.getItem('aeronepal_token')) {
@@ -492,6 +492,10 @@
 
     function hideAlert() {
       document.getElementById('alert-box').className = 'alert';
+    }
+
+    if (new URLSearchParams(window.location.search).get('gmailRequired') === '1') {
+      showAlert('Only Gmail accounts can book. Please sign in or create an account with a Gmail address.');
     }
 
     function togglePw(inputId, btn) {
@@ -519,8 +523,8 @@
 
       if (!email || !password) return showAlert('Please enter your email and password.');
       
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) return showAlert('Please enter a valid email address.');
+      const emailRegex = /^[^\s@]+@gmail\.com$/i;
+      if (!emailRegex.test(email)) return showAlert('Please enter a valid Gmail address.');
 
       setLoading('login-btn', 'login-spinner', 'login-btn-text', 'Sign In', true);
 
@@ -564,8 +568,8 @@
       const nameRegex = /^[a-zA-Z\s]+$/;
       if (!nameRegex.test(name)) return showAlert('Name must contain only letters and spaces.');
       
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) return showAlert('Please enter a valid email address.');
+      const emailRegex = /^[^\s@]+@gmail\.com$/i;
+      if (!emailRegex.test(email)) return showAlert('Please enter a valid Gmail address.');
       
       if (password.length < 6) return showAlert('Password must be at least 6 characters.');
       if (password !== confirm) return showAlert('Passwords do not match.');
