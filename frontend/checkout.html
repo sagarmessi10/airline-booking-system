@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AeroNepal | Payment demo</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:2rem;background:#f2f5f7;color:#24343d;font:16px system-ui,sans-serif}
+    main{max-width:520px;margin:7vh auto;padding:2rem;background:#fff;border-radius:14px;box-shadow:0 8px 30px #18304418}
+    h1{margin-top:0}.notice{padding:.8rem;background:#fff5d8;border-radius:8px;color:#644f0b;line-height:1.5}
+    label{display:block;margin:1.5rem 0 .5rem;font-weight:600}input{width:100%;padding:.8rem;border:1px solid #bbc5cc;border-radius:7px;font:inherit}
+    button{width:100%;margin-top:1rem;padding:.85rem;border:0;border-radius:7px;background:#168448;color:white;font:inherit;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.65;cursor:wait}[role=alert]{min-height:1.5rem;color:#a21c1c}.muted{color:#607078;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Demo checkout</h1>
+    <p class="notice"><strong>Test payment only.</strong> In mock mode, this uses a local fake gateway and never contacts eSewa or moves money.</p>
+    <form id="checkout-form">
+      <label for="amount">Amount (NPR)</label>
+      <input id="amount" name="amount" type="number" min="0.01" max="10000000" step="0.01" value="100" required>
+      <button id="pay-button" type="submit">Pay with eSewa</button>
+    </form>
+    <p id="message" role="alert" aria-live="polite"></p>
+    <p class="muted">The server signs payment fields. No eSewa password, PIN, or OTP is collected by this page.</p>
+    <form id="gateway-form" method="post" hidden></form>
+  </main>
+  <script>
+    const checkoutForm = document.getElementById('checkout-form');
+    const gatewayForm = document.getElementById('gateway-form');
+    const payButton = document.getElementById('pay-button');
+    const message = document.getElementById('message');
+
+    checkoutForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!checkoutForm.reportValidity()) return;
+      payButton.disabled = true;
+      payButton.textContent = 'Preparing secure payment…';
+      message.textContent = '';
+
+      try {
+        const response = await fetch('/api/pay/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: document.getElementById('amount').value })
+        });
+        const payment = await response.json();
+        if (!response.ok) throw new Error(payment.message || 'Could not initialize payment.');
+        if (typeof payment.form_action !== 'string' ||
+            !payment.transaction_uuid ||
+            !payment.signature ||
+            !payment.signed_field_names) {
+          throw new Error('The server returned an incomplete payment request.');
+        }
+
+        gatewayForm.action = payment.form_action;
+        Object.entries(payment).forEach(([name, value]) => {
+          if (name === 'form_action') return;
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = String(value);
+          gatewayForm.appendChild(input);
+        });
+        gatewayForm.submit();
+      } catch (error) {
+        message.textContent = error.message || 'Network error while preparing payment. Please try again.';
+        payButton.disabled = false;
+        payButton.textContent = 'Pay with eSewa';
+      }
+    });
+  </script>
+</body>
+</html>

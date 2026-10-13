@@ -30,6 +30,17 @@
     const ESEWA_FORM_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
     const query = new URLSearchParams(window.location.search);
     const bookingId = query.get('bookingId');
+    const demoTransactionUuid = query.get('transaction_uuid');
+
+    function isAllowedPaymentAction(value) {
+      try {
+        const action = new URL(value, window.location.href);
+        return action.href === ESEWA_FORM_URL ||
+          action.href === new URL('/payments/mock-esewa/form', API).href;
+      } catch {
+        return false;
+      }
+    }
 
     function setMessage(icon, title, message) {
       document.getElementById('result-icon').textContent = icon;
@@ -50,16 +61,75 @@
       return link;
     }
 
+    function showSignInRequired() {
+      localStorage.removeItem('aeronepal_token');
+      localStorage.removeItem('aeronepal_user');
+      setMessage('!', 'Please sign in again', 'Your session expired. The payment remains unconfirmed; sign in to safely check its status.');
+      const loginUrl = new URL('login.html', window.location.href);
+      loginUrl.searchParams.set('redirect', window.location.href);
+      document.getElementById('result-actions').replaceChildren();
+      addAction('Sign in to check payment', loginUrl.toString(), 'btn btn-primary');
+      addAction('Home', 'index.html', 'btn btn-secondary');
+    }
+
+    async function loadDemoPayment() {
+      document.querySelector('.checkout-eyebrow').textContent = 'LOCAL MOCK PAYMENT · NO REAL CHARGE';
+      if (!/^ORD-[A-Za-z0-9-]{8,100}$/.test(demoTransactionUuid || '')) {
+        setMessage('!', 'Payment reference is invalid', 'Return to checkout and start a new payment.');
+        addAction('Return to checkout', 'checkout.html', 'btn btn-primary');
+        return;
+      }
+      try {
+        const response = await fetch(`${API}/api/pay/order/${encodeURIComponent(demoTransactionUuid)}`);
+        const order = await response.json();
+        if (!response.ok) throw new Error(order.message || 'Unable to retrieve payment status.');
+        const status = order.status;
+        if (status === 'PAID') {
+          setMessage('✓', 'Payment successful', 'The local mock payment response and server-side status were verified.');
+        } else if (status === 'FAILED') {
+          setMessage('×', 'Payment not completed', 'The mock payment was cancelled or failed. No payment was confirmed.');
+        } else {
+          setMessage('…', 'Payment is pending', 'No successful payment has been confirmed.');
+        }
+        const details = document.getElementById('result-details');
+        details.hidden = false;
+        [
+          ['Transaction code', order.transaction_code || '—'],
+          ['Amount', `${order.amount} NPR`],
+          ['Transaction UUID', order.transaction_uuid],
+          ['Status', status]
+        ].forEach(([label, value]) => {
+          const term = document.createElement('dt');
+          const description = document.createElement('dd');
+          term.textContent = label;
+          description.textContent = value;
+          details.append(term, description);
+        });
+        addAction('Make another test payment', 'checkout.html', 'btn btn-primary');
+      } catch (error) {
+        setMessage('!', 'Unable to check payment', error.message || 'Network error while checking payment.');
+        addAction('Try again', `payment-result.html?transaction_uuid=${encodeURIComponent(demoTransactionUuid)}`, 'btn btn-primary');
+      }
+    }
+
     async function loadPayment() {
-      if (!/^\d+$/.test(bookingId || '') || !localStorage.getItem('aeronepal_token')) {
-        setMessage('!', 'Payment status unavailable', 'Sign in to view your booking status, or return to your booking history.');
+      if (!/^\d+$/.test(bookingId || '')) {
+        setMessage('!', 'Payment link is invalid', 'Return to your booking history to find the correct payment status.');
         addAction('Booking history', 'history.html', 'btn btn-primary');
+        return;
+      }
+      if (!localStorage.getItem('aeronepal_token')) {
+        showSignInRequired();
         return;
       }
       try {
         const response = await fetch(`${API}/payments/${encodeURIComponent(bookingId)}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('aeronepal_token')}` }
         });
+        if (response.status === 401) {
+          showSignInRequired();
+          return;
+        }
         const booking = await response.json();
         if (!response.ok) throw new Error(booking.message || 'Unable to retrieve booking.');
         if (booking.flight_id && booking.passenger_count &&
@@ -139,6 +209,10 @@
           method: 'POST',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('aeronepal_token')}` }
         });
+        if (response.status === 401) {
+          showSignInRequired();
+          return;
+        }
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || 'Unable to verify payment.');
         await loadPayment();
@@ -161,12 +235,16 @@
           method: 'POST',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('aeronepal_token')}` }
         });
+        if (response.status === 401) {
+          showSignInRequired();
+          return;
+        }
         const payment = await response.json();
         if (!response.ok) throw new Error(payment.message || 'Unable to retry payment.');
-        if (payment.formUrl !== ESEWA_FORM_URL) throw new Error('Unexpected eSewa payment destination.');
+        if (!isAllowedPaymentAction(payment.formUrl)) throw new Error('Unexpected eSewa payment destination.');
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = ESEWA_FORM_URL;
+        form.action = payment.formUrl;
         Object.entries(payment.fields).forEach(([name, value]) => {
           const input = document.createElement('input');
           input.type = 'hidden';
@@ -186,7 +264,10 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', loadPayment);
+    window.addEventListener('DOMContentLoaded', () => {
+      if (demoTransactionUuid) loadDemoPayment();
+      else loadPayment();
+    });
   </script>
 </body>
 </html>

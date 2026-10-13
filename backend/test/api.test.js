@@ -9,6 +9,7 @@ const env = require("../src/config/env");
 const { createSignature, multiplyAmount } = require("../src/utils/esewa");
 
 env.esewa.secretKey = "unit-test-only-secret";
+env.paymentMode = "sandbox";
 
 const sqlite = new DatabaseSync(":memory:");
 sqlite.exec("PRAGMA foreign_keys = ON");
@@ -124,6 +125,7 @@ const app = require("../src/app");
 (async () => {
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}`;
+  env.apiBaseUrl = base;
   const nativeFetch = global.fetch.bind(global);
   let requestIdempotencyKey = null;
   const httpFetch = (url, options = {}) => {
@@ -146,6 +148,12 @@ const app = require("../src/app");
   };
   let passed = 0;
   const t = (name, cond) => { assert.ok(cond, "FAILED: " + name); console.log("  ✔", name); passed++; };
+  t("eSewa UAT request signature matches the documented sample",
+    createSignature(
+      { total_amount: "110", transaction_uuid: "241028", product_code: "EPAYTEST" },
+      "total_amount,transaction_uuid,product_code",
+      "8gBm/:&EnhH.1/q"
+    ) === "i94zsd3oXF6ZsSr/kGqT4sSzYQzjj1W/waxjWyRwaME=");
   t("NPR fare multiplication uses exact minor units", multiplyAmount("0.10", 3) === "0.30");
 
   let r = await call("GET", "/");
@@ -321,6 +329,12 @@ const app = require("../src/app");
   }, adminToken);
   t("admin creates an explicitly demo domestic schedule", r.status === 201);
   const newFlightId = r.body.id;
+  r = await call("GET", "/flights/upcoming?passengers=4");
+  t("upcoming public schedules include admin-created flights with enough seats",
+    r.status === 200 && r.body.some((flight) => flight.id === newFlightId && flight.data_source === "ADMIN_DEMO") &&
+    r.body.every((flight) => flight.seats_available >= 4));
+  r = await call("GET", "/flights/upcoming?passengers=10");
+  t("upcoming schedules validate passenger count", r.status === 400);
   r = await call("POST", "/admin/domestic/schedules", {
     flight_name: "YT203", route_id: 2, airline_id: 2, flight_date: "2099-06-03",
     departure_time: "08:00", price: 0.1, duration: "35m", seat_capacity: 3
@@ -367,6 +381,10 @@ const app = require("../src/app");
     !JSON.stringify(r.body).includes(env.esewa.secretKey));
   const bookingId = r.body.booking_id;
   const transactionUuid = r.body.fields.transaction_uuid;
+  t("payment request has required signed fields and merchant callback URLs",
+    r.body.fields.signed_field_names === "total_amount,transaction_uuid,product_code" &&
+    r.body.fields.success_url === `${env.apiBaseUrl}/payments/esewa/success/${transactionUuid}` &&
+    r.body.fields.failure_url === `${env.apiBaseUrl}/payments/esewa/failure/${transactionUuid}`);
   const duplicateCheckout = await call("POST", "/book", { ...passenger, passenger_count: 2 }, userToken);
   requestIdempotencyKey = null;
   t("repeated checkout request returns the same pending payment",
@@ -398,15 +416,20 @@ const app = require("../src/app");
   };
   const setEsewaStatus = (status, overrides = {}) => {
     global.fetch = async (url) => {
-      assert.ok(String(url).startsWith("https://uat.esewa.com.np/api/epay/transaction/status/"));
+      const statusUrl = new URL(String(url));
+      assert.equal(`${statusUrl.origin}${statusUrl.pathname}`, "https://rc.esewa.com.np/api/epay/transaction/status/");
+      assert.equal(statusUrl.searchParams.get("product_code"), "EPAYTEST");
+      assert.ok(statusUrl.searchParams.get("total_amount"));
+      const statusUuid = statusUrl.searchParams.get("transaction_uuid");
+      assert.ok(statusUuid);
       return {
         ok: true,
         json: async () => ({
           status,
-          scd: "EPAYTEST",
-          totalAmount: 6500,
-          pid: "UAT-PID-001",
-          refId: "UAT-REF-001",
+          product_code: "EPAYTEST",
+          transaction_uuid: statusUuid,
+          total_amount: 6500,
+          ref_id: "UAT-REF-001",
           ...overrides,
         }),
       };
@@ -422,7 +445,7 @@ const app = require("../src/app");
     fractionalFareBooking.status === 201 &&
     fractionalFareBooking.body.fields.total_amount === "0.30" &&
     sqlite.prepare("SELECT amount FROM bookings WHERE id = ?").get(fractionalFareBooking.body.booking_id).amount === 0.3);
-  setEsewaStatus("NOT_FOUND", { totalAmount: 0.3 });
+  setEsewaStatus("NOT_FOUND", { total_amount: 0.3 });
   const fractionalFareUuid = fractionalFareBooking.body.fields.transaction_uuid;
   await call("GET", callbackUrl(fractionalFareUuid, signedResponse(fractionalFareUuid, "0.30")));
   t("fractional-fare failed payment releases reserved seats",
@@ -432,11 +455,11 @@ const app = require("../src/app");
     sqlite.prepare("SELECT seats_reserved FROM flights WHERE id = ?").get(lowInventoryFlightId).seats_reserved === 2);
   const overCapacityBooking = await call("POST", "/book", { ...passenger, flight_id: lowInventoryFlightId, passenger_count: 1 }, userToken);
   t("concurrent-style follow-up booking cannot exceed seat capacity", overCapacityBooking.status === 409);
-  setEsewaStatus("NOT_FOUND", { totalAmount: 13000 });
+  setEsewaStatus("NOT_FOUND", { total_amount: 13000 });
   const twoSeatUuid = twoSeatBooking.body.fields.transaction_uuid;
   await call("GET", callbackUrl(twoSeatUuid, signedResponse(twoSeatUuid, 13000)));
   t("failed payment releases its reserved seats", sqlite.prepare("SELECT seats_reserved FROM flights WHERE id = ?").get(lowInventoryFlightId).seats_reserved === 0);
-  setEsewaStatus("COMPLETE", { totalAmount: 13000 });
+  setEsewaStatus("COMPLETE", { total_amount: 13000 });
   let callback = await call("GET", callbackUrl(transactionUuid, signedResponse(transactionUuid, 13000)));
   t("signed success response plus COMPLETE status confirms booking",
     callback.status === 303 && /result=success/.test(callback.location) &&
@@ -471,9 +494,13 @@ const app = require("../src/app");
   callback = await call("GET", callbackUrl(secondUuid, signedResponse(secondUuid, 6500, "COMPLETE", env.esewa.secretKey, "WRONG-CODE")));
   t("incorrect merchant product code cannot confirm booking", callback.status === 303 &&
     sqlite.prepare("SELECT status FROM bookings WHERE id = ?").get(secondBookingId).status === "PENDING");
-  setEsewaStatus("COMPLETE", { totalAmount: 6501 });
+  setEsewaStatus("COMPLETE", { total_amount: 6501 });
   callback = await call("GET", callbackUrl(secondUuid, signedResponse(secondUuid, 6500)));
   t("mismatched official verification amount cannot confirm booking", callback.status === 303 &&
+    sqlite.prepare("SELECT status FROM bookings WHERE id = ?").get(secondBookingId).status === "PENDING");
+  setEsewaStatus("COMPLETE", { transaction_uuid: "different-transaction" });
+  callback = await call("GET", callbackUrl(secondUuid, signedResponse(secondUuid, 6500)));
+  t("mismatched official verification transaction UUID cannot confirm booking", callback.status === 303 &&
     sqlite.prepare("SELECT status FROM bookings WHERE id = ?").get(secondBookingId).status === "PENDING");
 
   const pendingBooking = await call("POST", "/book", passenger, userToken);
@@ -526,15 +553,51 @@ const app = require("../src/app");
   t("cancellation is recorded as failed and not paid",
     callback.status === 303 && /result=cancelled/.test(callback.location) &&
     sqlite.prepare("SELECT status FROM bookings WHERE id = ?").get(cancelledId).status === "PAYMENT_FAILED");
+
+  env.paymentMode = "mock";
+  const localMockBooking = await call("POST", "/book", passenger, userToken);
+  const localMockId = localMockBooking.body.booking_id;
+  const localMockUuid = localMockBooking.body.fields.transaction_uuid;
+  t("normal flight checkout routes to the local mock instead of eSewa UAT",
+    localMockBooking.status === 201 &&
+    localMockBooking.body.formUrl === `${base}/payments/mock-esewa/form`);
+  let mockGateway = await httpFetch(base + "/payments/mock-esewa/form", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(localMockBooking.body.fields),
+  });
+  const mockGatewayHtml = await mockGateway.text();
+  t("normal booking shows a credential-free local mock confirmation dialog",
+    mockGateway.status === 200 &&
+    /LOCAL MOCK — NO REAL PAYMENT/.test(mockGatewayHtml) &&
+    /<dialog[^>]*id="demo-dialog"/.test(mockGatewayHtml) &&
+    !/name="(?:esewa_id|password|mpin|token)"/.test(mockGatewayHtml));
+  mockGateway = await httpFetch(base + "/payments/mock-esewa/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      transaction_uuid: localMockUuid,
+      demo_confirmation: "approved",
+    }),
+    redirect: "manual",
+  });
+  const mockCallbackUrl = new URL(mockGateway.headers.get("location"));
+  callback = await call("GET", mockCallbackUrl.pathname + mockCallbackUrl.search);
+  t("local mock response verifies existing booking and confirms seats",
+    mockGateway.status === 303 && callback.status === 303 &&
+    sqlite.prepare("SELECT status FROM payments WHERE transaction_uuid = ?").get(localMockUuid).status === "PAID" &&
+    sqlite.prepare("SELECT status FROM bookings WHERE id = ?").get(localMockId).status === "CONFIRMED");
+  env.paymentMode = "sandbox";
+
   paymentDetails = await call("GET", `/payments/${bookingId}`, null, adminToken);
   t("payment status is restricted to booking owner", paymentDetails.status === 404);
   global.fetch = statusBeforePayment;
 
-  r = await call("GET", "/my-bookings", null, userToken); t("my-bookings returns all owner bookings", r.body.length === 10 && r.body[0].flight_name === "BA101");
+  r = await call("GET", "/my-bookings", null, userToken); t("my-bookings returns all owner bookings", r.body.length === 11 && r.body[0].flight_name === "BA101");
   r = await call("GET", "/my-bookings", null, adminToken); t("bookings are per-user", r.body.length === 0);
 
   r = await call("GET", "/admin/stats", null, userToken); t("stats blocks non-admin", r.status === 403);
-  r = await call("GET", "/admin/stats", null, adminToken); t("admin stats", r.body.totalUsers === 2 && r.body.totalFlights === 4 && r.body.totalBookings === 10);
+  r = await call("GET", "/admin/stats", null, adminToken); t("admin stats", r.body.totalUsers === 2 && r.body.totalFlights === 4 && r.body.totalBookings === 11);
   r = await call("GET", "/admin/users", null, adminToken); t("admin users list", r.body.length === 2 && !("password" in r.body[0]));
   r = await call("GET", "/admin/bookings", null, adminToken); t("admin bookings list", r.body[0].user_email === "alice@gmail.com" && r.body[0].payment_status);
 
@@ -561,7 +624,7 @@ const app = require("../src/app");
   t("admin deletes a schedule without bookings", r.status === 200);
   r = await call("DELETE", `/admin/domestic/schedules/1`, null, adminToken);
   t("schedule with booking records cannot be deleted", r.status === 409 &&
-    sqlite.prepare("SELECT COUNT(*) c FROM bookings").get().c === 10);
+    sqlite.prepare("SELECT COUNT(*) c FROM bookings").get().c === 11);
   r = await call("DELETE", `/admin/domestic/schedules/abc`, null, adminToken); t("bad schedule id -> 400", r.status === 400);
 
   r = await call("PATCH", "/admin/domestic/airports/LUA", { active: false }, adminToken);

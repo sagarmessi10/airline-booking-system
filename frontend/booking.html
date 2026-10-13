@@ -62,6 +62,7 @@
             <span id="button-label">Pay with eSewa</span><span class="spinner" id="spinner" aria-hidden="true"></span>
           </button>
           <p class="checkout-safe-note">Payment is processed only on eSewa's test environment. Your booking remains pending until server-side verification succeeds.</p>
+          <p class="checkout-muted">If eSewa's hosted UAT login reports a reCAPTCHA quota error, the test login is temporarily unavailable; only eSewa can restore it.</p>
         </form>
       </section>
 
@@ -106,8 +107,24 @@
       box.textContent = message;
       box.hidden = false;
     }
+    function requireSignIn() {
+      localStorage.removeItem('aeronepal_token');
+      localStorage.removeItem('aeronepal_user');
+      const loginUrl = new URL('login.html', window.location.href);
+      loginUrl.searchParams.set('redirect', window.location.href);
+      window.location.assign(loginUrl.toString());
+    }
     function formatMoney(value) {
       return `NPR ${Number(value).toFixed(2)}`;
+    }
+    function isAllowedPaymentAction(value) {
+      try {
+        const action = new URL(value, window.location.href);
+        return action.href === ESEWA_FORM_URL ||
+          action.href === new URL('/payments/mock-esewa/form', API).href;
+      } catch {
+        return false;
+      }
     }
 
     async function loadCheckout() {
@@ -242,6 +259,10 @@
             passenger_age: document.getElementById('passenger-age').value
           })
         });
+        if (response.status === 401) {
+          requireSignIn();
+          return;
+        }
         const payment = await response.json();
         if (!response.ok) {
           const message = payment.message === 'Incomplete booking details.'
@@ -249,13 +270,13 @@
             : payment.message || 'Payment could not be initialized.';
           throw new Error(message);
         }
-        if (payment.formUrl !== ESEWA_FORM_URL || !payment.fields || typeof payment.fields !== 'object') {
+        if (!isAllowedPaymentAction(payment.formUrl) || !payment.fields || typeof payment.fields !== 'object') {
           throw new Error('The server returned an unexpected payment destination.');
         }
 
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = ESEWA_FORM_URL;
+        form.action = payment.formUrl;
         Object.entries(payment.fields).forEach(([name, value]) => {
           const input = document.createElement('input');
           input.type = 'hidden';
@@ -264,7 +285,9 @@
           form.appendChild(input);
         });
         document.body.appendChild(form);
-        label.textContent = 'Redirecting to eSewa UAT…';
+        label.textContent = payment.formUrl === ESEWA_FORM_URL
+          ? 'Redirecting to eSewa UAT…'
+          : 'Opening local mock gateway…';
         form.submit();
       } catch (error) {
         button.disabled = false;

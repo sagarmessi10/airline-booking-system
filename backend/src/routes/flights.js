@@ -57,6 +57,26 @@ router.get("/flights", (req, res) => {
   });
 });
 
+router.get("/flights/upcoming", (req, res) => {
+  const passengers = Number(req.query.passengers ?? 1);
+  if (!Number.isInteger(passengers) || passengers < 1 || passengers > 9) {
+    return res.status(400).json({ message: "Passenger count must be between 1 and 9." });
+  }
+
+  db.query(
+    `${FLIGHT_DETAILS}
+      WHERE f.flight_date >= CURDATE()
+        AND f.seat_capacity - f.seats_reserved - f.seats_booked >= ?
+      ORDER BY f.flight_date, f.departure_time, a.name
+      LIMIT 12`,
+    [passengers],
+    (error, rows) => {
+      if (error) return res.status(500).json({ message: "Unable to load upcoming domestic schedules." });
+      res.json(rows);
+    }
+  );
+});
+
 router.get("/flights/:id", (req, res) => {
   if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ message: "Invalid flight ID." });
   db.query(`${FLIGHT_DETAILS} WHERE f.id = ?`, [Number(req.params.id)], (error, rows) => {

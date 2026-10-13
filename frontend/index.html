@@ -101,6 +101,17 @@
 
   <!-- Flight Results Section -->
   <div class="container">
+    <h2 class="section-title">Matching Bookable Schedules</h2>
+    <div id="search-results" aria-live="polite" role="status">
+      <p class="flight-empty">Select a Nepal route and travel date to search available schedules.</p>
+    </div>
+
+    <h2 class="section-title">Upcoming Bookable Demo Schedules</h2>
+    <p class="inventory-notice">These administrator-managed schedules have demo fares and seat inventory. Booking and eSewa UAT are for demonstration only and do not issue airline tickets.</p>
+    <div id="upcoming-demo-flights" aria-live="polite" role="status">
+      <p class="flight-empty">Loading upcoming schedules…</p>
+    </div>
+
     <h2 class="section-title">Live Nepal Flight Information</h2>
     <p class="inventory-notice">Live flight status is informational only. It does not confirm a fare, seat availability, or a bookable ticket. Results appear only when returned by the configured provider; no demo schedule is shown as live.</p>
     <div id="live-controls" class="flight-controls" hidden>
@@ -204,12 +215,14 @@
       document.getElementById('depart-date').min = localToday();
       document.getElementById('depart-date').value = localToday();
       document.getElementById('search-flights').addEventListener('click', searchFlights);
-      document.getElementById('refresh-flights').addEventListener('click', searchFlights);
+      document.getElementById('refresh-flights').addEventListener('click', loadLiveFlights);
       document.getElementById('search-demo-flights').addEventListener('click', searchDemoFlights);
+      document.getElementById('passengers').addEventListener('change', loadUpcomingSchedules);
       document.getElementById('flight-status-filter').addEventListener('change', renderLiveFlights);
       document.getElementById('flight-sort').addEventListener('change', renderLiveFlights);
       try {
         await loadAirports();
+        await loadUpcomingSchedules();
       } catch (error) {
         for (const id of ['source', 'destination']) {
           document.getElementById(id).replaceChildren(new Option('Airport service unavailable', ''));
@@ -217,6 +230,58 @@
         document.getElementById('flights').textContent = error.message;
       }
     });
+
+    async function loadUpcomingSchedules() {
+      const container = document.getElementById('upcoming-demo-flights');
+      container.innerHTML = '<p class="flight-empty">Loading upcoming schedules…</p>';
+      try {
+        const params = new URLSearchParams({ passengers: document.getElementById('passengers').value });
+        const response = await fetch(`${API}/flights/upcoming?${params}`);
+        const flights = await response.json();
+        if (!response.ok) throw new Error(flights.message || 'Unable to load upcoming schedules.');
+        renderDemoFlights(flights, container);
+      } catch (error) {
+        container.textContent = error.message || 'Unable to load upcoming schedules.';
+      }
+    }
+
+    function renderDemoFlights(flights, container) {
+      flights.forEach((flight) => schedulesById.set(String(flight.id), flight));
+      if (!flights.length) {
+        container.innerHTML = '<p class="flight-empty">No upcoming admin-managed schedules have seats available for this passenger count.</p>';
+        return;
+      }
+
+      const passengers = document.getElementById('passengers').value;
+      container.innerHTML = flights.map((f) => `
+        <div class="flight-card">
+          <div class="flight-info">
+            <div class="flight-airline">
+              ${escapeHtml(f.airline_name)} · ${escapeHtml(f.flight_name)}
+              <span>Domestic Nepal · Admin-managed demo schedule</span>
+            </div>
+            <div class="flight-route">
+              <div class="route-point">
+                <span class="route-city">${escapeHtml(f.source_name)} (${escapeHtml(f.source)})</span>
+                <span class="route-time">${escapeHtml(f.flight_date)} · ${escapeHtml(f.departure_time)}</span>
+              </div>
+              <div class="route-divider">
+                <span style="font-size:0.8rem;">${escapeHtml(f.duration)}</span>
+                <div class="route-line"></div>
+              </div>
+              <div class="route-point">
+                <span class="route-city">${escapeHtml(f.destination_name)} (${escapeHtml(f.destination)})</span>
+                <span class="route-time">${Number(f.seats_available)} demo seats available</span>
+              </div>
+            </div>
+          </div>
+          <div class="flight-action">
+            <div class="flight-price">NPR ${Number(f.price).toFixed(2)}<small style="font-size:0.7rem;color:var(--text-light);display:block;">per passenger</small></div>
+            <button onclick="book(${Number(f.id)})" class="btn btn-primary">Book ${passengers}</button>
+          </div>
+        </div>
+      `).join('');
+    }
 
     async function searchFlights() {
       const flightsContainer = document.getElementById('flights');
@@ -238,17 +303,36 @@
       }
 
       lastSearch = { origin, destination, date, passengers };
-      await loadLiveFlights();
+      const searchButton = document.getElementById('search-flights');
+      searchButton.disabled = true;
+      searchButton.textContent = 'Searching…';
+      try {
+        await Promise.all([loadMatchingSchedules(), loadLiveFlights()]);
+      } finally {
+        searchButton.disabled = false;
+        searchButton.textContent = 'Search Flights';
+      }
+    }
+
+    async function loadMatchingSchedules() {
+      const container = document.getElementById('search-results');
+      container.innerHTML = '<p class="flight-empty">Searching available schedules…</p>';
+      try {
+        const params = new URLSearchParams(lastSearch);
+        const response = await fetch(`${API}/flights?${params}`);
+        const flights = await response.json();
+        if (!response.ok) throw new Error(flights.message || 'Unable to search bookable schedules.');
+        renderDemoFlights(flights, container);
+      } catch (error) {
+        container.textContent = error.message || 'Unable to search bookable schedules.';
+      }
     }
 
     async function loadLiveFlights() {
       const flightsContainer = document.getElementById('flights');
-      const searchButton = document.getElementById('search-flights');
       const refreshButton = document.getElementById('refresh-flights');
       const controls = document.getElementById('live-controls');
-      searchButton.disabled = true;
       refreshButton.disabled = true;
-      searchButton.textContent = 'Searching…';
       controls.hidden = true;
       flightsContainer.innerHTML = '<p class="flight-empty">Searching the live flight-data provider…</p>';
       try {
@@ -269,9 +353,7 @@
         liveFlights = [];
         flightsContainer.textContent = error.message || 'Live flight information is unavailable.';
       } finally {
-        searchButton.disabled = false;
         refreshButton.disabled = false;
-        searchButton.textContent = 'Search Flights';
       }
     }
 
@@ -353,41 +435,7 @@
         const response = await fetch(`${API}/flights?${params}`);
         const flights = await response.json();
         if (!response.ok) throw new Error(flights.message || 'Unable to search demo schedules.');
-        schedulesById.clear();
-        flights.forEach((flight) => schedulesById.set(String(flight.id), flight));
-        if (!flights.length) {
-          container.innerHTML = '<p class="flight-empty">No admin-managed demo schedule has been entered for this route and date.</p>';
-          return;
-        }
-
-        container.innerHTML = flights.map((f) => `
-          <div class="flight-card">
-            <div class="flight-info">
-              <div class="flight-airline">
-                ${escapeHtml(f.airline_name)} · ${escapeHtml(f.flight_name)}
-                <span>Domestic Nepal · Admin-managed demo schedule</span>
-              </div>
-              <div class="flight-route">
-                <div class="route-point">
-                  <span class="route-city">${escapeHtml(f.source_name)} (${escapeHtml(f.source)})</span>
-                  <span class="route-time">${escapeHtml(f.departure_time)}</span>
-                </div>
-                <div class="route-divider">
-                  <span style="font-size:0.8rem;">${escapeHtml(f.duration)}</span>
-                  <div class="route-line"></div>
-                </div>
-                <div class="route-point">
-                  <span class="route-city">${escapeHtml(f.destination_name)} (${escapeHtml(f.destination)})</span>
-                  <span class="route-time">${escapeHtml(f.flight_date)}</span>
-                </div>
-              </div>
-            </div>
-            <div class="flight-action">
-              <div class="flight-price">NPR ${Number(f.price).toFixed(2)}<small style="font-size:0.7rem;color:var(--text-light);display:block;">per passenger · ${Number(f.seats_available)} demo seats</small></div>
-              <button onclick="book(${Number(f.id)})" class="btn btn-primary">Book ${passengers}</button>
-            </div>
-          </div>
-        `).join('');
+        renderDemoFlights(flights, container);
       } catch (error) {
         container.textContent = error.message || 'Failed to load demo schedules.';
       }
